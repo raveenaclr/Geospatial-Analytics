@@ -1,12 +1,5 @@
 [
   {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "Geospatial Analytics",
-    "section": "",
-    "text": "1 + 1\n\n[1] 2"
-  },
-  {
     "objectID": "about.html",
     "href": "about.html",
     "title": "About",
@@ -14,10 +7,24 @@
     "text": "1 + 1\n\n[1] 2"
   },
   {
+    "objectID": "Hands-on_Ex1/Hands-on_Ex1.html",
+    "href": "Hands-on_Ex1/Hands-on_Ex1.html",
+    "title": "Hands-on Exercise 1: Geospatial Data Wrangling",
+    "section": "",
+    "text": "In this hands-on exercise, I learn how to import and wrangle geospatial data using appropriate R packages\nGetting Started\nThe code chunk\n\npacman::p_load(sf, tidyverse)"
+  },
+  {
     "objectID": "Hands-on_Ex1.html",
     "href": "Hands-on_Ex1.html",
     "title": "Hands-on Exercise 1",
     "section": "",
     "text": "This is the overview\n\n\nThis is the getting started"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Geospatial Analytics",
+    "section": "",
+    "text": "1 + 1\n\n[1] 2"
   }
 ]

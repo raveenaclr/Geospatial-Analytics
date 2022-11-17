@@ -1,0 +1,16 @@
+---
+title: "Hands-on Exercise 1:  Geospatial Data Wrangling"
+author: "Raveena Chakrapani"
+---
+
+Overview:
+
+In this hands-on exercise, I learn how to import and wrangle geospatial data using appropriate R packages
+
+Getting Started
+
+The code chunk
+
+```{r}
+pacman::p_load(sf, tidyverse)
+```
