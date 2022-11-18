@@ -1,4 +1,121 @@
 ---
-title: "Hands-on Exercise 1: Chloropeth Mapping with R"
+title: "Geospatial Data Wrangling"
 author: "Raveena Chakrapani"
 ---
+
+### data
+
+```{r}
+pacman::p_load(sf, tidyverse, tmap)
+```
+
+```{r}
+mpsz = st_read(dsn = "data/geospatial", 
+                  layer = "MP14_SUBZONE_WEB_PL")
+```
+importing polyline feature
+
+```{r}
+cyclingpath = st_read(dsn ="data/geospatial", 
+                         layer = "CyclingPath")
+```
+### importing GIS
+
+```{r}
+preschool = st_read("data/geospatial/pre-schools-location-kml.kml")
+```
+
+```{r}
+st_geometry(mpsz)
+```
+
+plotting map
+
+```{r}
+plot(mpsz)
+```
+
+plot geometry
+
+```{r}
+plot(st_geometry(mpsz))
+```
+
+plot palnning area
+
+```{r}
+plot(mpsz["PLN_AREA_N"])
+```
+
+## Working with Projection
+
+```{r}
+st_crs(mpsz)
+mpsz3414 <- st_set_crs(mpsz, 3414)
+st_crs(mpsz3414)
+```
+
+### Transforming the projection of preschool from wgs84 to svy21
+
+```{r}
+preschool3414 <- st_transform(preschool, 
+                              crs = 3414)
+```
+
+importing aspatial data
+
+```{r}
+listings <- read_csv("data/aspatial/listings.csv")
+```
+
+dataframe from aspatial df
+
+```{r}
+listings_sf <- st_as_sf(listings, 
+                       coords = c("longitude", "latitude"),
+                       crs=4326) %>%
+  st_transform(crs = 3414)
+```
+
+### Geoprocessing with sf package
+
+Buffering
+
+```{r}
+buffer_cycling <- st_buffer(cyclingpath, 
+                               dist=5, nQuadSegs = 30)
+buffer_cycling$AREA <- st_area(buffer_cycling)
+sum(buffer_cycling$AREA)
+```
+
+### point in polygon count
+
+```{r}
+mpsz3414$`PreSch Count`<- lengths(st_intersects(mpsz3414, preschool3414))
+summary(mpsz3414$`PreSch Count`)
+top_n(mpsz3414, 1, `PreSch Count`)
+```
+
+### density of preschool by planning subzone
+
+```{r}
+mpsz3414$Area <- mpsz3414 %>%
+  st_area()
+mpsz3414 <- mpsz3414 %>%
+  mutate(`PreSch Density` = `PreSch Count`/Area * 1000000)
+```
+
+### Exploratory Data Analysis
+
+```{r}
+hist(mpsz3414$`PreSch Density`)
+ggplot(data=mpsz3414, 
+       aes(x= as.numeric(`PreSch Density`)))+
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="light blue") +
+  labs(title = "Are pre-school even distributed in Singapore?",
+       subtitle= "There are many planning sub-zones with a single pre-school, on the other hand, \nthere are two planning sub-zones with at least 20 pre-schools",
+      x = "Pre-school density (per km sq)",
+      y = "Frequency")
+```
