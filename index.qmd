@@ -2,6 +2,8 @@
 title: "Geospatial Analytics"
 ---
 
-```{r}
-1 + 1
-```
+![](images/Raveena_cropped.png){width="342"}
+
+Hi, My name is Raveena :)
+
+Welcome to my Geo Spatial Analysis Blog! Let's travel and explore maps :)
