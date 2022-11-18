@@ -1,7 +1,3 @@
----
-title: "Geospatial Analytics"
----
-
 ![](images/Raveena_cropped.png){width="342"}
 
 Hi, My name is Raveena :)
