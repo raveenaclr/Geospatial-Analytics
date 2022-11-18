@@ -2,8 +2,6 @@
 title: "Geospatial Analytics"
 ---
 
-Welcome to Geospatial Analytics webpage! Here, I am going to share with you my learning journey of geospatial analytics :)
-
 ```{r}
 1 + 1
 ```
