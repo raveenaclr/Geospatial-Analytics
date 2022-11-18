@@ -9,6 +9,13 @@ website:
         menu: 
           - text: Hands-on Exercise 1
           - href: Hands-on_Ex1/Hands-on_Ex1.qmd
+          - text: Hands-on Exercise 1
+          - href: Hands-on_Ex1/Hands-on_Ex1(2).qmd
+      - text: Take-home Exercises
+        menu: 
+          - text: Take-home Exercise 1
+         
+          
     right:
       - href: index.qmd
         text: Home
