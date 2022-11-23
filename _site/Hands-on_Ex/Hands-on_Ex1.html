@@ -205,7 +205,6 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <li><a href="#introduction" id="toc-introduction" class="nav-link" data-scroll-target="#introduction">2. Introduction</a></li>
   <li><a href="#glimpse-of-steps" id="toc-glimpse-of-steps" class="nav-link" data-scroll-target="#glimpse-of-steps">3. Glimpse of Steps</a></li>
   <li><a href="#data" id="toc-data" class="nav-link" data-scroll-target="#data">4. Data</a></li>
-  <li><a href="#deep-dive-into-map-analysis" id="toc-deep-dive-into-map-analysis" class="nav-link" data-scroll-target="#deep-dive-into-map-analysis">5. Deep Dive into Map Analysis</a></li>
   <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">6. Conclusion</a></li>
   <li><a href="#key-takeaways" id="toc-key-takeaways" class="nav-link" data-scroll-target="#key-takeaways">7. Key Takeaways</a></li>
   </ul>
@@ -234,13 +233,15 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h3 class="anchored" data-anchor-id="quick-recap">1. Quick Recap</h3>
 <p>In previous sections we have seen how to</p>
 <ul>
-<li><p>extract geospatial and aspatial datasets,</p></li>
-<li><p>convert one projection to another,</p></li>
+<li><p>import geospatial and aspatial datasets</p></li>
+<li><p>convert one projection to another</p></li>
+<li><p>exploring the content of simple feature data frame by using Base R and sf functions</p></li>
 </ul>
 </section>
 <section id="introduction" class="level3">
 <h3 class="anchored" data-anchor-id="introduction">2. Introduction</h3>
 <p>Choropleth mapping involves the symbolisation of enumeration units, such as countries, provinces, states, counties or census units, using area patterns or graduated colors.</p>
+<p>In this section, let us see how to plot functional and truthful choropleth maps by using an R package called <strong>tmap</strong> package.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="images/worldmap.png" class="img-fluid figure-img" width="550"></p>
@@ -249,20 +250,22 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </section>
 <section id="glimpse-of-steps" class="level3">
 <h3 class="anchored" data-anchor-id="glimpse-of-steps">3. Glimpse of Steps</h3>
-<p>Major packages used are</p>
+<p>Some of the important steps performed in this study are as follows</p>
 <ul>
-<li><p><a href="https://readr.tidyverse.org/"><strong>readr</strong></a> for importing delimited text file,</p></li>
-<li><p><a href="https://tidyr.tidyverse.org/"><strong>tidyr</strong></a> for tidying data,</p></li>
-<li><p><a href="https://dplyr.tidyverse.org/"><strong>dplyr</strong></a> for wrangling data and</p></li>
-<li><p><a href="https://cran.r-project.org/web/packages/sf/"><strong>sf</strong></a> for handling geospatial data.</p></li>
+<li><p>installing and loading <strong>required libraries</strong> into R environment</p></li>
+<li><p>performing data wrangling using necessary transformation functions</p></li>
+<li><p>Plotting a choropleth map using <em>qtm()</em> and tmap’s elements</p></li>
+<li><p>Drawing a base map and leveraging its features</p></li>
+<li><p>Plotting choropleth maps with built-in classification methods and custom breaks</p></li>
 </ul>
-<p>Among the four packages, <strong>readr</strong>, <strong>tidyr</strong> and <strong>dplyr</strong> are part of <strong>tidyverse</strong> package.</p>
 </section>
 <section id="data" class="level3">
 <h3 class="anchored" data-anchor-id="data">4. Data</h3>
-</section>
-<section id="deep-dive-into-map-analysis" class="level3">
-<h3 class="anchored" data-anchor-id="deep-dive-into-map-analysis">5. Deep Dive into Map Analysis</h3>
+<p>Following two data sets are used:</p>
+<ul>
+<li><p>MP14_SUBZONE_WEB_PL - Master Plan 2014 Subzone Boundary in ESRI shapefile format. This is a geospatial data. It consists of the geographical boundary of Singapore at the planning subzone level.</p></li>
+<li><p>respopagesextod2011to2020.csv - Singapore Residents by Planning Area / Subzone, Age Group, Sex and Type of Dwelling, June 2011-2020 in csv format. This is an aspatial data fie.</p></li>
+</ul>
 <section id="installing-libraries-and-importing-files" class="level4">
 <h4 class="anchored" data-anchor-id="installing-libraries-and-importing-files">5.1 Installing libraries and Importing files</h4>
 <div class="cell">
