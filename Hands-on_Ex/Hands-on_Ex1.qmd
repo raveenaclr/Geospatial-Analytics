@@ -38,8 +38,7 @@ Some of the important steps performed in this study are as follows
 
 Following two data sets are used:
 
--   MP14_SUBZONE_WEB_PL - Master Plan 2014 Subzone Boundary in ESRI shapefile format.
-    This is a geospatial data. It consists of the geographical boundary of Singapore at the planning subzone level.
+-   MP14_SUBZONE_WEB_PL - Master Plan 2014 Subzone Boundary in ESRI shapefile format. This is a geospatial data. It consists of the geographical boundary of Singapore at the planning subzone level.
 
 -   respopagesextod2011to2020.csv - Singapore Residents by Planning Area / Subzone, Age Group, Sex and Type of Dwelling, June 2011-2020 in csv format. This is an aspatial data fie.
 
@@ -330,6 +329,6 @@ tm_shape(mpsz_pop2020[mpsz_pop2020$REGION_N=="CENTRAL REGION", ])+
   tm_borders(alpha = 0.5)
 ```
 
-### 6. Conclusion
+### 6. Conclusion & Key Takeaways
 
-### 7. Key Takeaways
+### 7. References

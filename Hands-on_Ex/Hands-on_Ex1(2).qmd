@@ -235,6 +235,6 @@ ggplot(mpsz3414,
           axis.title.y.left = element_text(vjust = 0.5))
 ```
 
-### 5. Conclusion
+### 5. Conclusion & Key Takeaways
 
-### 6. Key Takeaways
+### 6. References

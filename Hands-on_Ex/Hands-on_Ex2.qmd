@@ -441,6 +441,6 @@ tmap_arrange(gdppc,
 
 Analysis
 
-### 6. Conclusion
+### 6. Conclusion & Key Takeaways
 
-### 7. Key Takeaways
+### 7. References
