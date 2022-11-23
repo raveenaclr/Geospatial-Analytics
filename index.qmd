@@ -1,4 +1,4 @@
-![](images/Raveena_cropped.png){width="342"}
+![](images/Raveena_cropped.png){fig-align="center" width="342"}
 
 Hi, My name is Raveena :)
 

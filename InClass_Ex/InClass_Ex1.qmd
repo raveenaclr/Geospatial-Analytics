@@ -1,0 +1,33 @@
+---
+title: "In-class Exercise 1"
+author: "Raveena Chakrapani"
+---
+
+### 1. Overview
+
+In this section, let's have an introduction to various types of maps data
+
+### 2. Getting Started
+
+The code chunk below will install and load tidyverse and sf packages
+
+```{r}
+pacman::p_load(sf,tidyverse,spdep)
+```
+
+### 3. Importing Geospatial Data
+
+#### 3.1 Importing polygon features
+
+The code chunk will import ESRI shapefile into R
+
+```{r}
+hunan_sf <- st_read(dsn = "data/geospatial",
+                layer = "Hunan")
+```
+
+#### 3.2 Importing attribute data in csv
+
+```{r}
+hunan_csv <- read_csv("data/aspatial/Hunan_2012.csv")
+```
