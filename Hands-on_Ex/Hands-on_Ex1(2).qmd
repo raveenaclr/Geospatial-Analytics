@@ -324,4 +324,4 @@ ggplot(mpsz3414,
 
 ### 5. Conclusion & Key Takeaways
 
-In this exercise we have covered the initial steps of importing geospatial data, aspatial data and projection transformation using appropriate R packages. We have also learnt how to view the content of the simple feature data frame using various functions. Finally, we have seen the ways to perform Exploratory Data Analysis (EDA) using ggplot2 functions. Let us see more details in the further sections.
+In this exercise we have covered the initial steps of importing geospatial data, aspatial data and projection transformation using appropriate R packages. We have also learnt how to view the content of the simple feature data frame using various functions. Finally, we have seen the ways to perform Exploratory Data Analysis (EDA) using ggplot2 functions. Let us see more details in the further sections. Stay tuned............

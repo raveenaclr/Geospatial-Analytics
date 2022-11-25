@@ -241,7 +241,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <section id="introduction" class="level3">
 <h3 class="anchored" data-anchor-id="introduction">2. Introduction</h3>
 <p>Choropleth mapping involves the symbolisation of enumeration units, such as countries, provinces, states, counties or census units, using area patterns or graduated colors.</p>
-<p>In this section, let us see how to plot functional and truthful choropleth maps by using an R package called <strong>tmap</strong> package.</p>
+<p>In this section, let us see how to plot functional and truthful choropleth maps by using an R package called <strong>tmap</strong> package. The world map shows distribution of population density among all countries.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="images/worldmap.png" class="img-fluid figure-img" width="550"></p>
@@ -268,6 +268,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </ul>
 <section id="installing-libraries-and-importing-files" class="level4">
 <h4 class="anchored" data-anchor-id="installing-libraries-and-importing-files">5.1 Installing libraries and Importing files</h4>
+<p><a href="https://cran.r-project.org/web/packages/pacman/pacman.pdf"><code>p_load</code></a> function pf <a href="https://github.com/trinker/pacman"><strong>pacman</strong></a> package is used to install and load sf ,tidyverse and tmap packages into R environment. Let us import MP14_SUBZONE_WEB_PL shapefile into R as a simple feature data frame called <code>mpsz</code> using <em>st_read()</em> function. Next, we will import <em>respopagsex2000to2018.csv</em> file into RStudio and save the file into an R dataframe called <em>popagsex</em> using <em>read_csv()</em> function as shown in the code chunk below.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(sf, tidyverse, tmap)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>mpsz <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">"data/geospatial"</span>, </span>
@@ -297,8 +298,21 @@ dbl (2): Pop, Time
 </section>
 <section id="data-preparation" class="level4">
 <h4 class="anchored" data-anchor-id="data-preparation">5.2 Data Preparation</h4>
+<p>Data has to be prepared in such a way that choropleth mapping can be performed.</p>
+<p>The data table should include the variables PA, SZ, YOUNG, ECONOMY ACTIVE, AGED, TOTAL, DEPENDENCY.</p>
 <section id="data-wrangling" class="level5">
 <h5 class="anchored" data-anchor-id="data-wrangling">5.2.1 Data Wrangling</h5>
+<p>The code chunk first filters the year 2020 and performs the following</p>
+<ul>
+<li><p>YOUNG: age group 0 to 4 until age groyup 20 to 24,</p></li>
+<li><p>ECONOMY ACTIVE: age group 25-29 until age group 60-64,</p></li>
+<li><p>AGED: age group 65 and above,</p></li>
+<li><p>TOTAL: all age group, and</p></li>
+<li><p>DEPENDENCY: the ratio between young and aged against economy active group</p>
+<p>Some of the transformation functions used are as follows</p>
+<p><em>pivot_wider()</em> of <strong>tidyr</strong> package, and</p>
+<p><em>mutate()</em>, <em>filter()</em>, <em>group_by()</em> and <em>select()</em> of <strong>dplyr</strong> package</p></li>
+</ul>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>popdata2020 <span class="ot">&lt;-</span> popdata <span class="sc">%&gt;%</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Time <span class="sc">==</span> <span class="dv">2020</span>) <span class="sc">%&gt;%</span></span>
@@ -326,6 +340,7 @@ dbl (2): Pop, Time
 </section>
 <section id="joining-attribute-and-geo-spatial-data" class="level5">
 <h5 class="anchored" data-anchor-id="joining-attribute-and-geo-spatial-data">5.2.2 Joining attribute and geo spatial data</h5>
+<p>We have to convert the values in PA and SZ fields to uppercase as the values of PA and SZ fields are made up of upper- and lowercase. On the other, hand the SUBZONE_N and PLN_AREA_N are in uppercase. Next, <em>left_join()</em> of <strong>dplyr</strong> is used to join the geographical data and attribute table using planning subzone name e.g.&nbsp;<em>SUBZONE_N</em> and <em>SZ</em> as the common identifier.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>popdata2020 <span class="ot">&lt;-</span> popdata2020 <span class="sc">%&gt;%</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate_at</span>(<span class="at">.vars =</span> <span class="fu">vars</span>(PA, SZ), </span>
@@ -354,8 +369,14 @@ Call `lifecycle::last_lifecycle_warnings()` to see where this warning was genera
 </section>
 <section id="choropleth-mapping-geospatial-data" class="level4">
 <h4 class="anchored" data-anchor-id="choropleth-mapping-geospatial-data">5.3 Choropleth Mapping Geospatial Data</h4>
+<p>There are two ways of creating thematic map. They are</p>
+<ul>
+<li><p>Plotting a thematic map quickly by using <em>qtm()</em>.</p></li>
+<li><p>Plotting highly customisable thematic map by using tmap elements.</p></li>
+</ul>
 <section id="using-qtm" class="level5">
 <h5 class="anchored" data-anchor-id="using-qtm">5.3.1 Using qtm()</h5>
+<p>The easiest and quickest to draw a choropleth map using <strong>tmap</strong> is using <em>qtm()</em>. It provides a good default visualisation.The code chunk below will draw a cartographic standard choropleth map as shown below.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tmap_mode</span>(<span class="st">"plot"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
@@ -370,6 +391,7 @@ Call `lifecycle::last_lifecycle_warnings()` to see where this warning was genera
 </section>
 <section id="using-tmap-elements" class="level5">
 <h5 class="anchored" data-anchor-id="using-tmap-elements">5.3.2 Using tmap elements</h5>
+<p>Although <em>qtm()</em> helps to create a thematic map easily, it lacks customisation. To draw a high quality cartographic choropleth map as shown in the figure below, <strong>tmap</strong>’s drawing elements should be used.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="st">"DEPENDENCY"</span>, </span>
@@ -395,6 +417,8 @@ Call `lifecycle::last_lifecycle_warnings()` to see where this warning was genera
 </section>
 <section id="drawing-a-basemap" class="level5">
 <h5 class="anchored" data-anchor-id="drawing-a-basemap">5.3.3 Drawing a basemap</h5>
+<p>The basic building block of <strong>tmap</strong> is <em>tm_shape()</em> followed by one or more layer elemments such as <em>tm_fill()</em> and <em>tm_polygons()</em>.</p>
+<p>In the code chunk below, <em>tm_shape()</em> is used to define the input data (i.e <em>mpsz_pop2020</em>) and <em>tm_polygons()</em> is used to draw the planning subzone polygons</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020) <span class="sc">+</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -405,6 +429,7 @@ Call `lifecycle::last_lifecycle_warnings()` to see where this warning was genera
 </section>
 <section id="using-tm_polygons" class="level5">
 <h5 class="anchored" data-anchor-id="using-tm_polygons">5.3.4 Using <em>tm_polygons()</em></h5>
+<p>To draw a choropleth map showing the geographical distribution of a selected variable by planning subzone, we just need to assign the target variable such as <em>Dependency</em> to <em>tm_polygons()</em>.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="st">"DEPENDENCY"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -415,6 +440,8 @@ Call `lifecycle::last_lifecycle_warnings()` to see where this warning was genera
 </section>
 <section id="using-tm_fill-and-tm_border" class="level5">
 <h5 class="anchored" data-anchor-id="using-tm_fill-and-tm_border">5.3.5 Using <em>tm_fill()</em> and <em>tm_border()</em></h5>
+<p>Actually, <em>tm_polygons()</em> is a wraper of <em>tm_fill()</em> and <em>tm_border()</em>. <em>tm_fill()</em> shades the polygons by using the default colour scheme and <em>tm_borders()</em> adds the borders of the shapefile onto the choropleth map.</p>
+<p>The code chunk below draws a choropleth map by using <em>tm_fill()</em> alone.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="st">"DEPENDENCY"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -432,8 +459,11 @@ Call `lifecycle::last_lifecycle_warnings()` to see where this warning was genera
 </section>
 <section id="data-classification" class="level4">
 <h4 class="anchored" data-anchor-id="data-classification">5.4 Data Classification</h4>
+<p>Most choropleth maps employ some methods of data classification. The point of classification is to take a large number of observations and group them into data ranges or classes.</p>
+<p>To define a data classification method, the <em>style</em> argument of <em>tm_fill()</em> or <em>tm_polygons()</em> will be used.</p>
 <section id="choropleth-maps-with-built-in-classification-methods---jenks" class="level5">
 <h5 class="anchored" data-anchor-id="choropleth-maps-with-built-in-classification-methods---jenks">5.4.1 Choropleth maps with built-in classification methods - jenks</h5>
+<p><strong>tmap</strong> provides a total ten data classification methods, namely: <em>fixed</em>, <em>sd</em>, <em>equal</em>, <em>pretty</em> (default), <em>quantile</em>, <em>kmeans</em>, <em>hclust</em>, <em>bclust</em>, <em>fisher</em>, and <em>jenks</em>. Out of all, the code chunk below shows a quantile data classification that used 5 classes.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span></span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="st">"DEPENDENCY"</span>,</span>
@@ -447,6 +477,7 @@ Call `lifecycle::last_lifecycle_warnings()` to see where this warning was genera
 </section>
 <section id="choropleth-maps-with-built-in-classification-methods---equal" class="level5">
 <h5 class="anchored" data-anchor-id="choropleth-maps-with-built-in-classification-methods---equal">5.4.2 Choropleth maps with built-in classification methods - equal</h5>
+<p>The code chunk below shows a equal data classification that used 5 classes.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="st">"DEPENDENCY"</span>,</span>
@@ -457,9 +488,11 @@ Call `lifecycle::last_lifecycle_warnings()` to see where this warning was genera
 <p><img src="Hands-on_Ex1_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid" width="672"></p>
 </div>
 </div>
+<p>It can be observed that the distribution of quantile data classification method are more evenly distributed than equal data classification method.</p>
 </section>
 <section id="using-custom-break" class="level5">
 <h5 class="anchored" data-anchor-id="using-custom-break">5.4.3 Using Custom break</h5>
+<p>we set break point at 0.60, 0.70, 0.80, and 0.90. In addition, we also need to include a minimum and maximum, which we set at 0 and 100.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="st">"DEPENDENCY"</span>,</span>
@@ -476,8 +509,10 @@ Call `lifecycle::last_lifecycle_warnings()` to see where this warning was genera
 </section>
 <section id="various-colour-schemes" class="level4">
 <h4 class="anchored" data-anchor-id="various-colour-schemes">5.5. Various colour schemes</h4>
+<p><strong>tmap</strong> supports colour ramps either defined by the user or a set of predefined colour ramps from the <strong>RColorBrewer</strong> package.</p>
 <section id="using-colourbrewer-palette---blues" class="level5">
 <h5 class="anchored" data-anchor-id="using-colourbrewer-palette---blues">5.5.1 Using ColourBrewer palette - Blues</h5>
+<p>To change the colour, we assign the preferred colour to <em>palette</em> argument of <em>tm_fill()</em> as shown in the code chunk below.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="st">"DEPENDENCY"</span>,</span>
@@ -492,6 +527,7 @@ Call `lifecycle::last_lifecycle_warnings()` to see where this warning was genera
 </section>
 <section id="using-colourbrewer-palette---greens" class="level5">
 <h5 class="anchored" data-anchor-id="using-colourbrewer-palette---greens">5.5.2 Using ColourBrewer palette - Greens</h5>
+<p>To reverse the colour shading, we can add a “-” prefix.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="st">"DEPENDENCY"</span>,</span>
@@ -506,8 +542,10 @@ Call `lifecycle::last_lifecycle_warnings()` to see where this warning was genera
 </section>
 <section id="map-layouts" class="level4">
 <h4 class="anchored" data-anchor-id="map-layouts">5.6. Map Layouts</h4>
+<p>Map layout refers to the combination of all map elements into a cohensive map. Map elements include among others the objects to be mapped, the title, the scale bar, the compass, margins and aspects ratios.</p>
 <section id="map-legend" class="level5">
 <h5 class="anchored" data-anchor-id="map-legend">5.6.1 Map Legend</h5>
+<p>In <strong>tmap</strong>, several <em>legend</em> options are provided to change the placement, format and appearance of the legend.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="st">"DEPENDENCY"</span>, </span>
@@ -532,6 +570,8 @@ Call `lifecycle::last_lifecycle_warnings()` to see where this warning was genera
 </section>
 <section id="map-style" class="level5">
 <h5 class="anchored" data-anchor-id="map-style">5.6.2 Map Style</h5>
+<p><strong>tmap</strong> allows a wide variety of layout settings to be changed. They can be called by using <em>tmap_style()</em>.</p>
+<p>The code chunk below shows the <em>classic</em> style is used.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span></span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="st">"DEPENDENCY"</span>, </span>
@@ -553,6 +593,8 @@ Call `lifecycle::last_lifecycle_warnings()` to see where this warning was genera
 </section>
 <section id="cartogram" class="level4">
 <h4 class="anchored" data-anchor-id="cartogram">5.7 Cartogram</h4>
+<p><strong>tmap</strong> also also provides arguments to draw other map furniture such as compass, scale bar and grid lines.</p>
+<p>In the code chunk below, <em>tm_compass()</em>, <em>tm_scale_bar()</em> and <em>tm_grid()</em> are used to add compass, scale bar and grid lines onto the choropleth map.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span></span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="st">"DEPENDENCY"</span>, </span>
@@ -578,8 +620,10 @@ Call `lifecycle::last_lifecycle_warnings()` to see where this warning was genera
 </section>
 <section id="drawing-multiple-small-choropleth-maps" class="level4">
 <h4 class="anchored" data-anchor-id="drawing-multiple-small-choropleth-maps">5.8. Drawing multiple small choropleth maps</h4>
+<p><strong>Small multiple maps</strong>, also referred to as <strong>facet maps</strong>, are composed of many maps arrange side-by-side, and sometimes stacked vertically.</p>
 <section id="assigning-values-to-aesthetic-arguments" class="level5">
 <h5 class="anchored" data-anchor-id="assigning-values-to-aesthetic-arguments">5.8.1 Assigning values to aesthetic arguments</h5>
+<p>Let us create small multiple choropleth maps by defining <strong><em>ncols</em></strong> in <strong>tm_fill()</strong></p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="fu">c</span>(<span class="st">"YOUNG"</span>, <span class="st">"AGED"</span>),</span>
@@ -598,6 +642,7 @@ Call `lifecycle::last_lifecycle_warnings()` to see where this warning was genera
 <p><img src="Hands-on_Ex1_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid" width="672"></p>
 </div>
 </div>
+<p>Let us now create small multiple choropleth maps by assigning multiple values to at least one of the aesthetic arguments.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span> </span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="fu">c</span>(<span class="st">"DEPENDENCY"</span>,<span class="st">"AGED"</span>),</span>
@@ -611,6 +656,7 @@ Call `lifecycle::last_lifecycle_warnings()` to see where this warning was genera
 </section>
 <section id="defining-a-group-by-variable-in-tm_facets" class="level5">
 <h5 class="anchored" data-anchor-id="defining-a-group-by-variable-in-tm_facets">5.8.2 Defining a group-by variable in <em>tm_facets()</em></h5>
+<p>Let us now create multiple small choropleth maps by using <strong>tm_facets()</strong>.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020) <span class="sc">+</span></span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="st">"DEPENDENCY"</span>,</span>
@@ -635,6 +681,7 @@ therefore deprecated</code></pre>
 </section>
 <section id="by-creating-multiple-stand-alone-maps-with-tmap_arrange" class="level5">
 <h5 class="anchored" data-anchor-id="by-creating-multiple-stand-alone-maps-with-tmap_arrange">5.8.3 By creating multiple stand-alone maps with <em>tmap_arrange()</em></h5>
+<p>Lets see how to create multiple small choropleth maps by creating multiple stand-alone maps with <strong>tmap_arrange()</strong>.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>youngmap <span class="ot">&lt;-</span> <span class="fu">tm_shape</span>(mpsz_pop2020)<span class="sc">+</span> </span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_polygons</span>(<span class="st">"YOUNG"</span>, </span>
@@ -655,6 +702,7 @@ therefore deprecated</code></pre>
 </section>
 <section id="mappping-spatial-object-meeting-a-selection-criterion" class="level4">
 <h4 class="anchored" data-anchor-id="mappping-spatial-object-meeting-a-selection-criterion">5.9 Mappping Spatial Object Meeting a Selection Criterion</h4>
+<p>We can also use selection function to map spatial objects meeting the selection criteria instead of creating multiple small choropleth maps.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tm_shape</span>(mpsz_pop2020[mpsz_pop2020<span class="sc">$</span>REGION_N<span class="sc">==</span><span class="st">"CENTRAL REGION"</span>, ])<span class="sc">+</span></span>
 <span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tm_fill</span>(<span class="st">"DEPENDENCY"</span>, </span>
@@ -682,9 +730,13 @@ Please use legend.outside.size to control the width of the outside legend</code>
 </section>
 <section id="conclusion-key-takeaways" class="level3">
 <h3 class="anchored" data-anchor-id="conclusion-key-takeaways">6. Conclusion &amp; Key Takeaways</h3>
+<p>In this exercise we have seen how to play with choropleth maps in detail starting from creating quick thematic maps using qtm() function to customising the asthetics od choropleth maps. We have also understood how to perform data classificatin and which one is suitable during the analysis. Further, lets deep dive into spatial weights in upcoming section. Stay tuned…..</p>
 </section>
 <section id="references" class="level3">
 <h3 class="anchored" data-anchor-id="references">7. References</h3>
+<p><a href="https://cran.r-project.org/web/packages/sf/" title="sf">Simple Features for R</a></p>
+<p><a href="https://journal.r-project.org/archive/2018/RJ-2018-009/RJ-2018-009.pdf">Standardized Support for Spatial Vector Data</a></p>
+<p><a href="https://www.jstatsoft.org/article/view/v084i06" title="Thematic Maps">Thematic Maps in R</a></p>
 
 
 </section>

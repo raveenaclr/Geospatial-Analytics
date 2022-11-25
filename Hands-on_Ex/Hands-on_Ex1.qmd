@@ -16,7 +16,7 @@ In previous sections we have seen how to
 
 Choropleth mapping involves the symbolisation of enumeration units, such as countries, provinces, states, counties or census units, using area patterns or graduated colors.
 
-In this section, let us see how to plot functional and truthful choropleth maps by using an R package called **tmap** package.
+In this section, let us see how to plot functional and truthful choropleth maps by using an R package called **tmap** package. The world map shows distribution of population density among all countries.
 
 ![](images/worldmap.png){fig-align="center" width="550"}
 
@@ -44,6 +44,8 @@ Following two data sets are used:
 
 #### 5.1 Installing libraries and Importing files
 
+[`p_load`](https://cran.r-project.org/web/packages/pacman/pacman.pdf) function pf [**pacman**](https://github.com/trinker/pacman) package is used to install and load sf ,tidyverse and tmap packages into R environment. Let us import MP14_SUBZONE_WEB_PL shapefile into R as a simple feature data frame called `mpsz` using *st_read()* function. Next, we will import *respopagsex2000to2018.csv* file into RStudio and save the file into an R dataframe called *popagsex* using *read_csv()* function as shown in the code chunk below.
+
 ```{r}
 pacman::p_load(sf, tidyverse, tmap)
 mpsz <- st_read(dsn = "data/geospatial", 
@@ -53,7 +55,29 @@ popdata <- read_csv("data/aspatial/respopagesextod2011to2020.csv")
 
 #### 5.2 Data Preparation
 
+Data has to be prepared in such a way that choropleth mapping can be performed.
+
+The data table should include the variables PA, SZ, YOUNG, ECONOMY ACTIVE, AGED, TOTAL, DEPENDENCY.
+
 ##### 5.2.1 Data Wrangling
+
+The code chunk first filters the year 2020 and performs the following
+
+-   YOUNG: age group 0 to 4 until age groyup 20 to 24,
+
+-   ECONOMY ACTIVE: age group 25-29 until age group 60-64,
+
+-   AGED: age group 65 and above,
+
+-   TOTAL: all age group, and
+
+-   DEPENDENCY: the ratio between young and aged against economy active group
+
+    Some of the transformation functions used are as follows
+
+    *pivot_wider()* of **tidyr** package, and
+
+    *mutate()*, *filter()*, *group_by()* and *select()* of **dplyr** package
 
 ```{r}
 popdata2020 <- popdata %>%
@@ -78,6 +102,8 @@ mutate(`DEPENDENCY` = (`YOUNG` + `AGED`)
 
 ##### 5.2.2 Joining attribute and geo spatial data
 
+We have to convert the values in PA and SZ fields to uppercase as the values of PA and SZ fields are made up of upper- and lowercase. On the other, hand the SUBZONE_N and PLN_AREA_N are in uppercase. Next, *left_join()* of **dplyr** is used to join the geographical data and attribute table using planning subzone name e.g. *SUBZONE_N* and *SZ* as the common identifier.
+
 ```{r}
 popdata2020 <- popdata2020 %>%
   mutate_at(.vars = vars(PA, SZ), 
@@ -90,7 +116,15 @@ write_rds(mpsz_pop2020, "data/rds/mpszpop2020.rds")
 
 #### 5.3 Choropleth Mapping Geospatial Data
 
+There are two ways of creating thematic map. They are
+
+-   Plotting a thematic map quickly by using *qtm()*.
+
+-   Plotting highly customisable thematic map by using tmap elements.
+
 ##### 5.3.1 Using qtm()
+
+The easiest and quickest to draw a choropleth map using **tmap** is using *qtm()*. It provides a good default visualisation.The code chunk below will draw a cartographic standard choropleth map as shown below.
 
 ```{r}
 tmap_mode("plot")
@@ -99,6 +133,8 @@ qtm(mpsz_pop2020,
 ```
 
 ##### 5.3.2 Using tmap elements
+
+Although *qtm()* helps to create a thematic map easily, it lacks customisation. To draw a high quality cartographic choropleth map as shown in the figure below, **tmap**'s drawing elements should be used.
 
 ```{r}
 tm_shape(mpsz_pop2020)+
@@ -122,6 +158,10 @@ tm_shape(mpsz_pop2020)+
 
 ##### 5.3.3 Drawing a basemap
 
+The basic building block of **tmap** is *tm_shape()* followed by one or more layer elemments such as *tm_fill()* and *tm_polygons()*.
+
+In the code chunk below, *tm_shape()* is used to define the input data (i.e *mpsz_pop2020*) and *tm_polygons()* is used to draw the planning subzone polygons
+
 ```{r}
 tm_shape(mpsz_pop2020) +
   tm_polygons()
@@ -130,12 +170,18 @@ tm_shape(mpsz_pop2020) +
 
 ##### 5.3.4 Using *tm_polygons()*
 
+To draw a choropleth map showing the geographical distribution of a selected variable by planning subzone, we just need to assign the target variable such as *Dependency* to *tm_polygons()*.
+
 ```{r}
 tm_shape(mpsz_pop2020)+
   tm_polygons("DEPENDENCY")
 ```
 
 ##### 5.3.5 Using *tm_fill()* and *tm_border()*
+
+Actually, *tm_polygons()* is a wraper of *tm_fill()* and *tm_border()*. *tm_fill()* shades the polygons by using the default colour scheme and *tm_borders()* adds the borders of the shapefile onto the choropleth map.
+
+The code chunk below draws a choropleth map by using *tm_fill()* alone.
 
 ```{r}
 tm_shape(mpsz_pop2020)+
@@ -147,7 +193,13 @@ tm_shape(mpsz_pop2020)+
 
 #### 5.4 Data Classification
 
+Most choropleth maps employ some methods of data classification. The point of classification is to take a large number of observations and group them into data ranges or classes.
+
+To define a data classification method, the *style* argument of *tm_fill()* or *tm_polygons()* will be used.
+
 ##### 5.4.1 Choropleth maps with built-in classification methods - jenks
+
+**tmap** provides a total ten data classification methods, namely: *fixed*, *sd*, *equal*, *pretty* (default), *quantile*, *kmeans*, *hclust*, *bclust*, *fisher*, and *jenks*. Out of all, the code chunk below shows a quantile data classification that used 5 classes.
 
 ```{r}
 tm_shape(mpsz_pop2020)+
@@ -160,6 +212,8 @@ tm_shape(mpsz_pop2020)+
 
 ##### 5.4.2 Choropleth maps with built-in classification methods - equal
 
+The code chunk below shows a equal data classification that used 5 classes.
+
 ```{r}
 tm_shape(mpsz_pop2020)+
   tm_fill("DEPENDENCY",
@@ -168,7 +222,11 @@ tm_shape(mpsz_pop2020)+
   tm_borders(alpha = 0.5)
 ```
 
+It can be observed that the distribution of quantile data classification method are more evenly distributed than equal data classification method.
+
 ##### 5.4.3 Using Custom break
+
+we set break point at 0.60, 0.70, 0.80, and 0.90. In addition, we also need to include a minimum and maximum, which we set at 0 and 100.
 
 ```{r}
 tm_shape(mpsz_pop2020)+
@@ -179,7 +237,11 @@ tm_shape(mpsz_pop2020)+
 
 #### 5.5. Various colour schemes
 
+**tmap** supports colour ramps either defined by the user or a set of predefined colour ramps from the **RColorBrewer** package.
+
 ##### 5.5.1 Using ColourBrewer palette - Blues
+
+To change the colour, we assign the preferred colour to *palette* argument of *tm_fill()* as shown in the code chunk below.
 
 ```{r}
 tm_shape(mpsz_pop2020)+
@@ -192,6 +254,8 @@ tm_shape(mpsz_pop2020)+
 
 ##### 5.5.2 Using ColourBrewer palette - Greens
 
+To reverse the colour shading, we can add a "-" prefix.
+
 ```{r}
 tm_shape(mpsz_pop2020)+
   tm_fill("DEPENDENCY",
@@ -202,7 +266,11 @@ tm_shape(mpsz_pop2020)+
 
 #### 5.6. Map Layouts
 
+Map layout refers to the combination of all map elements into a cohensive map. Map elements include among others the objects to be mapped, the title, the scale bar, the compass, margins and aspects ratios.
+
 ##### 5.6.1 Map Legend
+
+In **tmap**, several *legend* options are provided to change the placement, format and appearance of the legend.
 
 ```{r}
 tm_shape(mpsz_pop2020)+
@@ -225,6 +293,10 @@ tm_shape(mpsz_pop2020)+
 
 ##### 5.6.2 Map Style
 
+**tmap** allows a wide variety of layout settings to be changed. They can be called by using *tmap_style()*.
+
+The code chunk below shows the *classic* style is used.
+
 ```{r}
 tm_shape(mpsz_pop2020)+
   tm_fill("DEPENDENCY", 
@@ -235,6 +307,10 @@ tm_shape(mpsz_pop2020)+
 ```
 
 #### 5.7 Cartogram
+
+**tmap** also also provides arguments to draw other map furniture such as compass, scale bar and grid lines.
+
+In the code chunk below, *tm_compass()*, *tm_scale_bar()* and *tm_grid()* are used to add compass, scale bar and grid lines onto the choropleth map.
 
 ```{r}
 tm_shape(mpsz_pop2020)+
@@ -258,7 +334,11 @@ tm_shape(mpsz_pop2020)+
 
 #### 5.8. Drawing multiple small choropleth maps
 
+**Small multiple maps**, also referred to as **facet maps**, are composed of many maps arrange side-by-side, and sometimes stacked vertically.
+
 ##### 5.8.1 Assigning values to aesthetic arguments
+
+Let us create small multiple choropleth maps by defining ***ncols*** in **tm_fill()**
 
 ```{r}
 tm_shape(mpsz_pop2020)+
@@ -270,6 +350,8 @@ tm_shape(mpsz_pop2020)+
   tmap_style("white")
 ```
 
+Let us now create small multiple choropleth maps by assigning multiple values to at least one of the aesthetic arguments.
+
 ```{r}
 tm_shape(mpsz_pop2020)+ 
   tm_polygons(c("DEPENDENCY","AGED"),
@@ -279,6 +361,8 @@ tm_shape(mpsz_pop2020)+
 ```
 
 ##### 5.8.2 Defining a group-by variable in *tm_facets()*
+
+Let us now create multiple small choropleth maps by using **tm_facets()**.
 
 ```{r}
 tm_shape(mpsz_pop2020) +
@@ -297,6 +381,8 @@ tm_shape(mpsz_pop2020) +
 
 ##### 5.8.3 By creating multiple stand-alone maps with *tmap_arrange()*
 
+Lets see how to create multiple small choropleth maps by creating multiple stand-alone maps with **tmap_arrange()**.
+
 ```{r}
 youngmap <- tm_shape(mpsz_pop2020)+ 
   tm_polygons("YOUNG", 
@@ -312,6 +398,8 @@ tmap_arrange(youngmap, agedmap, asp=1, ncol=2)
 ```
 
 #### 5.9 Mappping Spatial Object Meeting a Selection Criterion
+
+We can also use selection function to map spatial objects meeting the selection criteria instead of creating multiple small choropleth maps.
 
 ```{r}
 tm_shape(mpsz_pop2020[mpsz_pop2020$REGION_N=="CENTRAL REGION", ])+
@@ -331,4 +419,12 @@ tm_shape(mpsz_pop2020[mpsz_pop2020$REGION_N=="CENTRAL REGION", ])+
 
 ### 6. Conclusion & Key Takeaways
 
+In this exercise we have seen how to play with choropleth maps in detail starting from creating quick thematic maps using qtm() function to customising the asthetics od choropleth maps. We have also understood how to perform data classificatin and which one is suitable during the analysis. Further, lets deep dive into spatial weights in upcoming section. Stay tuned.....
+
 ### 7. References
+
+[Simple Features for R](https://cran.r-project.org/web/packages/sf/ "sf")
+
+[Standardized Support for Spatial Vector Data](https://journal.r-project.org/archive/2018/RJ-2018-009/RJ-2018-009.pdf)
+
+[Thematic Maps in R](https://www.jstatsoft.org/article/view/v084i06 "Thematic Maps")
