@@ -38,7 +38,7 @@ Some of the important steps performed in this study are as follows
 
 Following two data sets are used:
 
--   Hunan county boundary layer. This is a geospatial data set in ESRI shapefile format.
+-   Hunan country boundary layer. This is a geospatial data set in ESRI shapefile format.
 
 -   Hunan_2012.csv: This csv file contains selected Hunan's local development indicators in 2012.
 
@@ -239,7 +239,7 @@ colnames(lag.res) <- c("NAME_3", "lag_sum GDPPC")
 
 ```
 
-##### 5.7.4  Comparing *GDPPC* and *Spatial Lag Sum GDPPC* maps
+##### 5.7.4 Comparing *GDPPC* and *Spatial Lag Sum GDPPC* maps
 
 ```{r}
 hunan <- left_join(hunan, lag.res)
@@ -248,7 +248,7 @@ lag_sum_gdppc <- qtm(hunan, "lag_sum GDPPC")
 tmap_arrange(gdppc, lag_sum_gdppc, asp=1, ncol=2)
 ```
 
-##### 5.7.5  Spatial window average
+##### 5.7.5 Spatial window average
 
 ```{r}
 wm_q1 <- wm_q
@@ -304,13 +304,3 @@ tmap_arrange(gdppc, w_sum_gdppc, asp=1, ncol=2)
 ### 6. Conclusion & Key Takeaways
 
 ### 7. References
-
-
-
-
-
-
-
-
-
-
