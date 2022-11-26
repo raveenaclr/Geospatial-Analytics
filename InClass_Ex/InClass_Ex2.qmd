@@ -1,0 +1,68 @@
+---
+title: "In Class Exercise 2"
+---
+
+#### Loading packages
+
+[`p_load`](https://cran.r-project.org/web/packages/pacman/pacman.pdf) function pf [**pacman**](https://github.com/trinker/pacman) package is used to install and load sf and tidyverse pacages into R environment.
+
+```{r}
+pacman::p_load(sf, tidyverse,spdep, tmap, funModeling)
+```
+
+#### Importing gesospatial data
+
+The code chunk below uses *st_read()* function of **sf** package to import *geoBoundaries-NGA-ADM2_simplified* shapefile into R as a polygon feature data frame.
+
+Two arguments are used :
+
+-   dsn - destination : to define the data path
+
+-   *layer* - to provide the shapefile name
+
+```{r}
+ngaGeo <- st_read(dsn = "data2/geospatial", 
+                layer = "geoBoundaries-NGA-ADM2")
+```
+
+The message above reveals that the geospatial objects are multipolygon features. There are a total of 774 multipolygon features and 5 fields in ngaGeo simple feature data frame. ngaGeo is in **wgs84** coordinates systems
+
+#### Importing aspatial data
+
+Since *nigeria_waterpoints* data set is in csv file format, we will use [*read_csv()*](https://readr.tidyverse.org/reference/read_delim.html) of **readr** package to import *nigeria_waterpoints.csv* as shown the code chunk below. The output R object is called *ngawaterpoints* and it is a [tibble data frame](https://r4ds.had.co.nz/tibbles.html).
+
+```{r}
+ngawaterpoints  <- read_csv("data2/aspatial/nigeria_waterpoints.csv")
+```
+
+```{r}
+list(ngawaterpoints)
+```
+
+#### Creating a simple feature data frame from an aspatial data frame
+
+The code chunk below converts *ngawaterpoints* data frame into a simple feature data frame by using [*st_as_sf()*](https://r-spatial.github.io/sf/reference/st_as_sf.html) of **sf** packages
+
+```{r}
+ngawater_sf <- st_as_sf(ngawaterpoints , 
+                       coords = c("#lon_deg", "#lat_deg"),
+                       crs=4326) %>%
+  st_transform(crs = 26391)
+```
+
+#### Data Wrangling
+
+```{r}
+ngawater_sf <-ngawater_sf %>% 
+mutate(waterpoint_status=recode(`#status_clean`, 
+                     'Abandoned'='Non-Functional',
+                     'Abandoned/Decommissioned'='Non-Functional',
+                     'Non functional due to dry season'='Non-Functional',
+                     'Non-Functional due to dry season'='Non-Functional',
+                     'Functional but not in use'='Functional',
+                     'Functional but needs repair'= 'Functional'))
+```
+
+```{r}
+unique(ngawater_sf$waterpoint_status)
+```
