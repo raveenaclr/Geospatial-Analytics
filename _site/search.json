@@ -49,20 +49,6 @@
     "text": "Hi, My name is Raveena :)\nWelcome to my Geo Spatial Analysis Blog! Let’s travel and explore maps :)"
   },
   {
-    "objectID": "TakeHomeEx/thex1.html",
-    "href": "TakeHomeEx/thex1.html",
-    "title": "Nigeria - Spatial patterns of Functional & Non-Functional water points",
-    "section": "",
-    "text": "Developing countries are most affected by water shortages and poor water quality. Up to 80% of illnesses in the developing world are linked to inadequate water and sanitation. Despite technological advancement, providing clean water to the rural community is still a major development issues in many countries globally, especially countries in the Africa continent.\nTo address the issue of providing clean and sustainable water supply to the rural community, a global Water Point Data Exchange (WPdx) project has been initiated. The main aim of this initiative is to collect water point related data from rural areas at the water point or small water scheme level and share the data via WPdx Data Repository, a cloud-based data library."
-  },
-  {
-    "objectID": "TakeHomeEx/thex1.html#deriving-spatial-weight-matrix",
-    "href": "TakeHomeEx/thex1.html#deriving-spatial-weight-matrix",
-    "title": "Nigeria - Spatial patterns of Functional & Non-Functional water points",
-    "section": "Deriving spatial weight matrix",
-    "text": "Deriving spatial weight matrix\n\nCreating (QUEEN) contiguity based neighbours"
-  },
-  {
     "objectID": "TakeHomeEx/ex1.html",
     "href": "TakeHomeEx/ex1.html",
     "title": "ex1",
