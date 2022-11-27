@@ -104,8 +104,7 @@ tmap_arrange(equal,
 
 ##### 5.4.1 Computing Contiguity Spatial Weights
 
-Before we can compute the global spatial autocorrelation statistics, we need to construct a spatial weights of the study area. The spatial weights is used to define the neighbourhood relationships between the geographical units (i.e. county) in the study area.
-The code chunk below is used to compute Queen contiguity weight matrix.
+Before we can compute the global spatial autocorrelation statistics, we need to construct a spatial weights of the study area. The spatial weights is used to define the neighbourhood relationships between the geographical units (i.e. county) in the study area. The code chunk below is used to compute Queen contiguity weight matrix.
 
 ```{r}
 wm_q <- poly2nb(hunan, 
@@ -266,6 +265,7 @@ head(localMI)
 The code chunks below can be used to perform the task. The out SpatialPolygonDataFrame is called *hunan.localMI*.
 
 ```{r}
+
 hunan.localMI <- cbind(hunan,localMI) %>%
   rename(Pr.Ii = Pr.z....E.Ii..)
 ```
