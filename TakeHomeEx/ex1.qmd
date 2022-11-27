@@ -1,0 +1,85 @@
+---
+title: "ex1"
+---
+
+```{r}
+pacman::p_load(sf, tidyverse, tmap, spdep, funModeling)
+```
+
+```{r, eval=FALSE}
+wp <- st_read(dsn = "data/aspatial",
+              layer = "geo_export",
+              crs = 4326) %>%
+  filter(clean_coun == "Nigeria")
+```
+
+```{r,eval=FALSE}
+
+nga <- st_read(dsn = "data/geospatial",
+               layer = "geoBoundaries-NGA-ADM2",
+               crs = 4326)
+```
+
+```{r,eval=FALSE}
+write_rds(wp, "data/aspatial/wp_nga.rds")
+wp_nga <- read_rds("data/aspatial/wp_nga.rds") %>%
+  mutate(status_cle = replace_na(status_cle, "Unknown"))
+```
+
+```{r,eval=FALSE}
+wpt_functional <- wp_nga %>%
+  filter(status_cle %in%
+           c("Functional", 
+             "Functional but not in use",
+             "Functional but needs repair"))
+```
+
+```{r,eval=FALSE}
+wpt_nonfunctional <- wp_nga %>%
+  filter(status_cle %in%
+           c("Abandoned/Decommissioned", 
+             "Abandoned",
+             "Non-Functional",
+             "Non functional due to dry season",
+             "Non-Functional due to dry season"))
+```
+
+```{r,eval=FALSE}
+wpt_unknown <- wp_nga %>%
+  filter(status_cle == "Unknown")
+```
+
+```{r,eval=FALSE}
+nga_wp <- nga %>% 
+  mutate(`total wpt` = lengths(
+    st_intersects(nga, wp_nga))) %>%
+  mutate(`wpt functional` = lengths(
+    st_intersects(nga, wpt_functional))) %>%
+  mutate(`wpt non-functional` = lengths(
+    st_intersects(nga, wpt_nonfunctional))) %>%
+  mutate(`wpt unknown` = lengths(
+    st_intersects(nga, wpt_unknown)))
+```
+
+```{r,eval=FALSE}
+nga_wp <- nga_wp %>%
+  mutate(pct_functional = `wpt functional`/`total wpt`) %>%
+  mutate(`pct_non-functional` = `wpt non-functional`/`total wpt`)
+```
+
+```{r,eval=FALSE}
+write_rds(nga_wp, "data/nga_wp.rds")
+```
+
+```{r, fig.height=15, fig.width=15}
+nga_wp <- read_rds("data/nga_wp.rds")
+total <- qtm(nga_wp, "total wpt")
+wp_functional <- qtm(nga_wp, "wpt functional")
+wp_nonfunctional <- qtm(nga_wp, "wpt non-functional")
+unknown <- qtm(nga_wp, "wpt unknown")
+
+tmap_arrange(total, wp_functional, wp_nonfunctional, unknown, ncol=2)
+```
+
+
+

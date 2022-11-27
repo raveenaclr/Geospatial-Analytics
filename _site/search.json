@@ -47,5 +47,26 @@
     "title": "Geospatial Analytics",
     "section": "",
     "text": "Hi, My name is Raveena :)\nWelcome to my Geo Spatial Analysis Blog! Let’s travel and explore maps :)"
+  },
+  {
+    "objectID": "TakeHomeEx/thex1.html",
+    "href": "TakeHomeEx/thex1.html",
+    "title": "Nigeria - Spatial patterns of Functional & Non-Functional water points",
+    "section": "",
+    "text": "Developing countries are most affected by water shortages and poor water quality. Up to 80% of illnesses in the developing world are linked to inadequate water and sanitation. Despite technological advancement, providing clean water to the rural community is still a major development issues in many countries globally, especially countries in the Africa continent.\nTo address the issue of providing clean and sustainable water supply to the rural community, a global Water Point Data Exchange (WPdx) project has been initiated. The main aim of this initiative is to collect water point related data from rural areas at the water point or small water scheme level and share the data via WPdx Data Repository, a cloud-based data library."
+  },
+  {
+    "objectID": "TakeHomeEx/thex1.html#deriving-spatial-weight-matrix",
+    "href": "TakeHomeEx/thex1.html#deriving-spatial-weight-matrix",
+    "title": "Nigeria - Spatial patterns of Functional & Non-Functional water points",
+    "section": "Deriving spatial weight matrix",
+    "text": "Deriving spatial weight matrix\n\nCreating (QUEEN) contiguity based neighbours"
+  },
+  {
+    "objectID": "TakeHomeEx/ex1.html",
+    "href": "TakeHomeEx/ex1.html",
+    "title": "ex1",
+    "section": "",
+    "text": "wp <- st_read(dsn = \"data/aspatial\",\n              layer = \"geo_export\",\n              crs = 4326) %>%\n  filter(clean_coun == \"Nigeria\")\n\n\nnga <- st_read(dsn = \"data/geospatial\",\n               layer = \"geoBoundaries-NGA-ADM2\",\n               crs = 4326)\n\n\nwrite_rds(wp, \"data/aspatial/wp_nga.rds\")\nwp_nga <- read_rds(\"data/aspatial/wp_nga.rds\") %>%\n  mutate(status_cle = replace_na(status_cle, \"Unknown\"))\n\n\nwpt_functional <- wp_nga %>%\n  filter(status_cle %in%\n           c(\"Functional\", \n             \"Functional but not in use\",\n             \"Functional but needs repair\"))\n\n\nwpt_nonfunctional <- wp_nga %>%\n  filter(status_cle %in%\n           c(\"Abandoned/Decommissioned\", \n             \"Abandoned\",\n             \"Non-Functional\",\n             \"Non functional due to dry season\",\n             \"Non-Functional due to dry season\"))\n\n\nwpt_unknown <- wp_nga %>%\n  filter(status_cle == \"Unknown\")\n\n\nnga_wp <- nga %>% \n  mutate(`total wpt` = lengths(\n    st_intersects(nga, wp_nga))) %>%\n  mutate(`wpt functional` = lengths(\n    st_intersects(nga, wpt_functional))) %>%\n  mutate(`wpt non-functional` = lengths(\n    st_intersects(nga, wpt_nonfunctional))) %>%\n  mutate(`wpt unknown` = lengths(\n    st_intersects(nga, wpt_unknown)))\n\n\nnga_wp <- nga_wp %>%\n  mutate(pct_functional = `wpt functional`/`total wpt`) %>%\n  mutate(`pct_non-functional` = `wpt non-functional`/`total wpt`)\n\n\nwrite_rds(nga_wp, \"data/nga_wp.rds\")\n\n\nnga_wp <- read_rds(\"data/nga_wp.rds\")\ntotal <- qtm(nga_wp, \"total wpt\")\nwp_functional <- qtm(nga_wp, \"wpt functional\")\nwp_nonfunctional <- qtm(nga_wp, \"wpt non-functional\")\nunknown <- qtm(nga_wp, \"wpt unknown\")\n\ntmap_arrange(total, wp_functional, wp_nonfunctional, unknown, ncol=2)"
   }
 ]
