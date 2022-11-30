@@ -1,6 +1,8 @@
----
-title: "About"
----
+<div>
+
+![](images/geospatial.jpg){fig-align="center"}
+
+</div>
 
 Geospatial data analytics lets the eye recognize patterns like distance, proximity, contiguity and affiliation that are hidden in massive datasets. The visualization of spatial data also makes it easier to see how things are changing over time and where the change is most pronounced.Benefits of geospatial analytics include:
 
@@ -9,11 +11,3 @@ Geospatial data analytics lets the eye recognize patterns like distance, proximi
 -   **Better foresight** --- Seeing how spatial conditions are changing in real time can help an organization better prepare for change and determine future action.
 
 -   **Targeted solutions** --- Seeing location-based data helps organizations understand why some locations and countries, such as the United States, are more successful for business than others.
-
-    Geospatial analytics has quite a lot of use cases in various industries as shown in the below figure
-
-    <div>
-
-    ![](images/geospatial.jpg){fig-align="center"}
-
-    </div>
