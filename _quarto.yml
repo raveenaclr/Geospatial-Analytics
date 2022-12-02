@@ -11,6 +11,7 @@ website:
           - href: Hands-on_Ex/Hands-on_Ex1(2).qmd
           - href: Hands-on_Ex/Hands-on_Ex1.qmd
           - href: Hands-on_Ex/Hands-on_Ex2.qmd
+          - href: Hands-on_Ex/Hands-on_Ex3.qmd
       - text: Take-home Exercises
         menu: 
           - href: TakeHomeEx/ex1.qmd

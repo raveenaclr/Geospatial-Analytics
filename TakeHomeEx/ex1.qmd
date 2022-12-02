@@ -8,13 +8,13 @@ Developing countries are most affected by water shortages and poor water quality
 
 To address the issue of providing clean and sustainable water supply to the rural community, a global [Water Point Data Exchange (WPdx)](https://www.waterpointdata.org/about/) project has been initiated. The main aim of this initiative is to collect water point related data from rural areas at the water point or small water scheme level and share the data via WPdx Data Repository, a cloud-based data library.
 
-![](images/nigeria.jpg){fig-align="center"}
+![Picture Credit - Google](images/nigeria.jpg){fig-align="center"}
 
 ### 2. Objective
 
 The main aim of the study is to understand the dynamics of spatial patterns of non-functional water points in Nigeria and its diffusion over spatial boundaries by applying appropriate global and local measures of spatial association techniques.
 
-![](images/functional.png){fig-align="center"}
+![Picture Credit - Google](images/functional.png){fig-align="center"}
 
 ### 3. Glimpse of Steps
 
@@ -585,7 +585,7 @@ quantile <- tm_shape(nga_wp) +
           style = "quantile",
           palette = "Blues") +
   tm_borders(alpha = 0.5) +
-  tm_layout(main.title = "Plotting quantile interval classification map",
+  tm_layout(main.title = "Quantile interval classification map",
             main.title.position = "center",
             main.title.size = 2,
             legend.height = 1, 
@@ -643,6 +643,8 @@ Based on the above two summaries, following analysis is done:
 | No. of regions without links    | 1     | 1     |
 | Average no. of links per region | 5.710 | 5.736 |
 
+: Table 2: Comparison of Rook and Queen methods
+
 As all the regions are mentioned by its number, let's try to find the actual division name.
 
 The below code chunk is to find the actual division name of the numbers mentioned
@@ -663,10 +665,12 @@ nb2
 ```
 
 | Metrics                 | Results                                                                         |
-|------------------------|-----------------------------------------------|
+|-------------------------|----------------------------------------------|
 | Region with no link     | Bakassi                                                                         |
 | Least connected regions | Chanchaga , Offa These two divisions are connected with only 1 division - Bosso |
 | Most connected region   | Mokwa - is connected with 14 other divisions                                    |
+
+: Table 3: Observations
 
 **Distance Based Spatial Weights**
 
@@ -688,6 +692,8 @@ knn8 <- knn2nb(knearneigh(coords, k=8))
 |------------------------------|--------|--------|--------|--------|
 | Avg. no. of links per region | 6      | 6      | 7      | 8      |
 
+: Table 4: Comparison of Knn with different weights
+
 ```{r}
 #| code-fold: true
 #| code-summary: "Computing knn8"
@@ -698,7 +704,6 @@ coords <- cbind(longitude, latitude)
 
 knn8 <- knn2nb(knearneigh(coords, k=8))
 ```
-
 
 Based on the results, k-nearest neighbours method is effective as the average no. of links for W(k=8) is greater than the avg no. of links determined using Queen or Rook's contiguity based weight matrices.
 
@@ -1187,16 +1192,15 @@ nci_nf <- moran.plot(nga_wp$z.nf, rswm_q,
 
 From subplot 1, we understand functional water points are located in the Low-Low quadrant which indicates that they are associated with relatively low values in surrounding locations.Similarly, from subplot 2, we understand that non-functional waterpoints are all over place in all the four quadrants although there is an edge in the Low-Low quadrant like the functional waterpoints.
 
-The direction and magnitude of global autocorrelation is observed in a Moran Scatterplot, as the slope of the linear regression of the lagged values of waterpoints vs the original frequencies of waterpoints is equivalent to the Moran's I score.
-However, we are not able to see which of these areas are significant. For that, we perform LISA analysis.
+The direction and magnitude of global autocorrelation is observed in a Moran Scatterplot, as the slope of the linear regression of the lagged values of waterpoints vs the original frequencies of waterpoints is equivalent to the Moran's I score. However, we are not able to see which of these areas are significant. For that, we perform LISA analysis.
 
 The code chunk below prepares a LISA cluster map.
 
-1. Derive the spatially lagged variable of interest (i.e. GDPPC) and centers the       spatially lagged variable around its mean.
-2. Centering the local Moran’s around the mean.
-3. Set a statistical significance level for the local Moran.
-4. Define the four categories low-low (1), low-high (2), high-low (3) and high-high    categories.
-5. Lastly, places non-significant Moran in the category 0.
+1.  Derive the spatially lagged variable of interest (i.e. GDPPC) and centers the spatially lagged variable around its mean.
+2.  Centering the local Moran's around the mean.
+3.  Set a statistical significance level for the local Moran.
+4.  Define the four categories low-low (1), low-high (2), high-low (3) and high-high categories.
+5.  Lastly, places non-significant Moran in the category 0.
 
 ```{r}
 #| code-fold: true
@@ -1216,7 +1220,6 @@ quadrantf[DVf <0 & LM_If<0] <- 3
 quadrantf[DVf >0 & LM_If>0] <- 4    
 quadrantf[localMIf[,5]>signiffunc] <- 0
 ```
-
 
 ```{r}
 #| code-fold: true
@@ -1292,6 +1295,7 @@ LISAmap <- tm_shape(nga_wp.localMI) +
                      legend.title.size = 1)
   
 ```
+
 Let us plot both LISA maps of functional and non-functional waterpoints next to each other for better interpretation.
 
 ```{r, fig.height=10, fig.width= 15, message=FALSE, warning=FALSE}
@@ -1304,7 +1308,6 @@ tmap_arrange(LISAmapf, LISAmap,
 We can see that spatial distribution of functional waterpoints are positively autocorrelated in the northern region i.e. those are associated with relatively high values of the surrounding locations.
 
 On the other hand, spatial distribution of non-functional waterpoints are positively autocorrelated in parts of south east, west and central part of the nation.
-
 
 #### 5.10 Hot Spot and Cold Spot Area Analysis
 
@@ -1414,20 +1417,17 @@ Plotting Gi map for functional and non-functional waterpoints help us to underst
 
 ### 6. Key Takeaway
 
-
 ```{r,fig.height=10, fig.width= 15,message=FALSE, warning=FALSE}
 tmap_arrange(LISAmap, Gimap_nf,
              asp=1,ncol=2)
 
 ```
 
-
 Throughout the study, we have come across lot of observations and interpretations from graphs, charts and maps. To conclude, based on the objective of this study, focusing on spatial pattern of non-functional waterpoints, both LISA map and GI Map reveals that parts of southeastern regions, parts of west and central region which are darker in both the maps indicate that they are associated with relatively high values of the surrounding locations i.e. clustered and majority of the eastern region doesn't have any waterpoints (unknown). These are the observations which are matter of concern and has to be taken care of.
 
 ### 7. Conclusion
 
-The study of the spatial distribution of waterpoints in Nigeria using the approach of Global and Local measures of Autocorrelation had generated much insights regarding the waterpoints distribution. The LISA analysis in particular helped to locate statistically significant hotspots of waterpoints more rigorously than  choropleths maps.Such geospatial analytics methods are quite important
-supplement to traditional analysis as the latter only provides the locational context not the analytical context.
+The study of the spatial distribution of waterpoints in Nigeria using the approach of Global and Local measures of Autocorrelation had generated much insights regarding the waterpoints distribution. The LISA analysis in particular helped to locate statistically significant hotspots of waterpoints more rigorously than choropleths maps.Such geospatial analytics methods are quite important supplement to traditional analysis as the latter only provides the locational context not the analytical context.
 
 ### 8. References
 
