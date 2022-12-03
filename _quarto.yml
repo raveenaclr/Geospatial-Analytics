@@ -19,6 +19,7 @@ website:
         menu: 
           - href: InClass_Ex/InClass_Ex1.qmd
           - href: InClass_Ex/InClass_Ex2.qmd
+          - href: InClass_Ex/InClass_Ex3.qmd
          
           
     right:
