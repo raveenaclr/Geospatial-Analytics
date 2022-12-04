@@ -2,17 +2,32 @@
 title: "Spatial Patterns of Non-functional points - Nigeria"
 ---
 
+For this study, data from [WPdx Global Data Repositories](https://www.waterpointdata.org/access-data/) and [geoBoundaries](https://www.geoboundaries.org/) are used. Both are in geospatial format. These dataset provide information about waterpoints and Nigeria's Administrative boundary shape file.
+
+| Data Type  | Description                                                                                                                   | Source                                                                |
+|--------------|--------------------------------------|--------------------|
+| Geospatial | Nigeria Level-2 Administrative Boundary                                                                                       | [Geoboundaries](https://www.geoboundaries.org/)                       |
+| Geospatial | Water point related data on [WPdx standard](https://www.waterpointdata.org/wp-content/uploads/2021/04/WPDx_Data_Standard.pdf) | [Waterpoint access data](https://www.waterpointdata.org/access-data/) |
+
+: Table1: Datasets Used
+
+### Deep Dive into Geospatial Analysis
+
+Let us try to understand the dynamics of spatial patterns of non-functional water points in Nigeria and its diffusion over spatial boundaries using appropriate global and local measures of spatial association techniques.
+
 #### Loading packages
 
-[`p_load`](https://cran.r-project.org/web/packages/pacman/pacman.pdf) function pf [**pacman**](https://github.com/trinker/pacman) package is used to install and load sf and tidyverse pacages into R environment.
+Let us first load required packages into R environment. [`p_load`](https://cran.r-project.org/web/packages/pacman/pacman.pdf) function pf [**pacman**](https://github.com/trinker/pacman) package is used to install and load sf and tidyverse pacagkes into R environment.
 
 ```{r}
-pacman::p_load(sf, tidyverse,spdep, tmap, funModeling)
+#| code-fold: true
+#| code-summary: "Packages"
+pacman::p_load(sf, tidyverse, tmap, spdep, patchwork, ggthemes)
 ```
 
-#### Importing gesospatial data
+#### Importing Geospatial Data
 
-The code chunk below uses *st_read()* function of **sf** package to import *geoBoundaries-NGA-ADM2_simplified* shapefile into R as a polygon feature data frame.
+Now let us import both the geospatial data. The code chunk below uses *st_read()* function of **sf** package to import *geoBoundaries-NGA-ADM2_simplified* shapefile and *geo_export* into R environment.
 
 Two arguments are used :
 
@@ -20,49 +35,309 @@ Two arguments are used :
 
 -   *layer* - to provide the shapefile name
 
-```{r}
-ngaGeo <- st_read(dsn = "data2/geospatial", 
-                layer = "geoBoundaries-NGA-ADM2")
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "Importing Data"
+waterpts <- st_read(dsn = "data2/aspatial",
+              layer = "geo_export",
+              crs = 4326) %>%
+  filter(clean_coun == "Nigeria")
+nigeria <- st_read(dsn = "data2/geospatial",
+               layer = "geoBoundaries-NGA-ADM2",
+               crs = 4326)
 ```
 
-The message above reveals that the geospatial objects are multipolygon features. There are a total of 774 multipolygon features and 5 fields in ngaGeo simple feature data frame. ngaGeo is in **wgs84** coordinates systems
+-   `st_read()` of **sf** package is used to import *geo_export* and *geoBoundaries-NGA-ADM2_simplified* shapefile into R environment and save the imported geospatial data into simple feature data table.
 
-#### Importing aspatial data
+-   `filter()` of dplyr package is used to extract water point records of Nigeria.
 
-Since *nigeria_waterpoints* data set is in csv file format, we will use [*read_csv()*](https://readr.tidyverse.org/reference/read_delim.html) of **readr** package to import *nigeria_waterpoints.csv* as shown the code chunk below. The output R object is called *ngawaterpoints* and it is a [tibble data frame](https://r4ds.had.co.nz/tibbles.html).
+In order to reduce the file size let us save the data in .rds format.
 
-```{r}
-ngawaterpoints  <- read_csv("data2/aspatial/nigeria_waterpoints.csv")
+```{r,eval=FALSE}
+#| code-fold: true
+#| code-summary: "Saving the file"
+write_rds(waterpts, "data2/wp_nga.rds")
 ```
 
-```{r}
-list(ngawaterpoints)
-```
-
-#### Creating a simple feature data frame from an aspatial data frame
-
-The code chunk below converts *ngawaterpoints* data frame into a simple feature data frame by using [*st_as_sf()*](https://r-spatial.github.io/sf/reference/st_as_sf.html) of **sf** packages
-
-```{r}
-ngawater_sf <- st_as_sf(ngawaterpoints , 
-                       coords = c("#lon_deg", "#lat_deg"),
-                       crs=4326) %>%
-  st_transform(crs = 26391)
-```
+`write_rds()` of readr package is used to save the extracted sf data table into an output file in rds data format.
 
 #### Data Wrangling
 
+Let us now preprocess the data before performing any analysis
+
+#### Replacing NA values into Unknown
+
+Here, we are recoding the NA values into Unknown. In the code chunk below, `replace_na()` is used to recode all the *NA* values in *status_cle* field into *Unknown*.
+
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "Replacing NA"
+wp_nga <- read_rds("data2/wp_nga.rds") %>%
+  mutate(status_cle = replace_na(status_cle, "Unknown"))
+```
+
+#### Extracting Funtional, Non-Functional and Unknown water points
+
+As our objective is to focus on waterpoints, let us extract the three types and save it as a dataframe for further analysis
+
+```{r,eval=FALSE}
+#| code-fold: true
+#| code-summary: "Extracting waterpoints"
+wpt_functional <- wp_nga %>%
+  filter(status_cle %in%
+           c("Functional", 
+             "Functional but not in use",
+             "Functional but needs repair"))
+
+wpt_nonfunctional <- wp_nga %>%
+  filter(status_cle %in%
+           c("Abandoned/Decommissioned", 
+             "Abandoned",
+             "Non-Functional",
+             "Non functional due to dry season",
+             "Non-Functional due to dry season"))
+
+wpt_unknown <- wp_nga %>%
+  filter(status_cle == "Unknown")
+```
+
+In the code chunk above, `filter()` of dplyr is used to select the specific water points.
+
+#### Computing Number of Waterpoints in each Second-level Administrative Division
+
+We have to perform 2 steps to calculate the total number of functional, non-functional and Unknown waterpoints in each division.
+
+1.  Let us identify no. of waterpoints located inside each division by using [st_intersects()](https://r-spatial.github.io/sf/reference/geos_binary_pred.html).
+
+2.  Next, let us calculate numbers of pre-schools that fall inside each planning subzone by using [*length()*](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/length) function.
+
+```{r,eval=FALSE}
+#| code-fold: true
+#| code-summary: "Computing numbers"
+nga_wp <- nigeria %>% 
+  mutate(`total wpt` = lengths(
+    st_intersects(nigeria, wp_nga))) %>%
+  mutate(`wpt functional` = lengths(
+    st_intersects(nigeria, wpt_functional))) %>%
+  mutate(`wpt non-functional` = lengths(
+    st_intersects(nigeria, wpt_nonfunctional))) %>%
+  mutate(`wpt unknown` = lengths(
+    st_intersects(nigeria, wpt_unknown)))
+```
+
+#### Computing Proportion of Functional and Non-Functional water points
+
+Now, let us calculate what is the overall proportion of functional and non-functional waterpoints by dividing the no. of functional waterpoints by the total no. of waterpoints. Similarly, for non-functional waterpoint proportion, numerator is replaced by non-functional waterpoint.
+
+```{r,eval=FALSE}
+#| code-fold: true
+#| code-summary: "Computing proportion"
+nga_wp <- nga_wp %>%
+  mutate(pct_functional = `wpt functional`/`total wpt`) %>%
+  mutate(`pct_non-functional` = `wpt non-functional`/`total wpt`)
+```
+
+#### Saving the final rds file
+
+In order to manage the storage data efficiently, we are saving the final data frame in rds format.
+
+```{r,eval=FALSE}
+#| code-fold: true
+#| code-summary: "Saving rds file"
+write_rds(nga_wp, "data2/nga_wp.rds")
+write_rds(wpt_functional, "data2/wpt_functional.rds")
+write_rds(wpt_nonfunctional, "data2/wpt_nonfunctional.rds")
+```
+
+#### Exploratory Data Analysis
+
+Before performing spatial analysis, let us first do some preliminary data analysis to understand the data better in terms of water points.
+
+#### What is the proportion of functional and non-functional water points?
+
+Before visualising, its important for us to prepare the data. Based on [WPDx Data Standard](https://www.waterpointdata.org/wp-content/uploads/2021/04/WPDx_Data_Standard.pdf), the variable '#status_id' refers to *Presence of Water when Assessed.* Binary response, i.e. Yes/No are recoded into Functional / Not-Functional.
+
 ```{r}
-ngawater_sf <-ngawater_sf %>% 
-mutate(waterpoint_status=recode(`#status_clean`, 
-                     'Abandoned'='Non-Functional',
-                     'Abandoned/Decommissioned'='Non-Functional',
-                     'Non functional due to dry season'='Non-Functional',
-                     'Non-Functional due to dry season'='Non-Functional',
-                     'Functional but not in use'='Functional',
-                     'Functional but needs repair'= 'Functional'))
+#| code-fold: true
+#| code-summary: "Preparing the data"
+nga_sf <- read_rds("data2/nga_sf.rds")
+ngawater_sf <- read_rds("data2/ngawater_sf.rds")
+ngawater_sf<-ngawater_sf %>%
+  mutate(`#status_id`=
+                case_when(`#status_id`=="Yes"~"Functional",
+                          `#status_id`=="No"~"Non-Functional",
+                          `#status_id`== "Unknown"~"unknown"))
 ```
 
 ```{r}
-unique(ngawater_sf$waterpoint_status)
+#| code-fold: true
+#| code-summary: "Proportion graph"
+ggplot(data= ngawater_sf, 
+       aes(x= `#status_id`)) +
+       geom_bar(fill= '#CD5C5C') +
+       #ylim(0, 150) +
+       geom_text(stat = 'count',
+           aes(label= paste0(stat(count), ', ', 
+                             round(stat(count)/sum(stat(count))*100, 
+                             1), '%')), vjust= -0.5, size= 2.5) +
+       labs(y= 'No. of \nwater points',
+            x= 'Water Points',
+            title = "Distribution of water points") +
+       theme(axis.title.y= element_text(angle=0), 
+             axis.ticks.x= element_blank(),
+             panel.background= element_blank(),
+             axis.line= element_line(color= 'grey'),
+             axis.title.y.left = element_text(vjust = 0.5),
+             plot.title = element_text(hjust=0.5))
 ```
+
+**Insights**:
+
+Nigeria consists of almost 55% of functional, 34% of non-functional and 11% of unknown waterpoints.
+
+#### What is the district wise proportion of water points?
+
+First let us prepare the data
+
+1.  Filter all the NA values in waterpoint_status
+2.  Group by shape name and waterpoint status
+3.  Compute the count and proposition by dividing the count by total number of waterpoints in that division
+4.  Selecting top 10 rows with more no. of waterpoints
+
+```{r}
+#| code-fold: true
+#| code-summary: "Preparing data"
+nga_sf <- nga_sf %>% filter(!is.na(waterpoint_status)) 
+df <- nga_sf %>% 
+  group_by(shapeName,waterpoint_status) %>% 
+  tally() %>%
+  group_by(shapeName) %>%
+  mutate(total=sum(n),
+         prop=round(n*100/total)) %>%
+  arrange(desc(total))
+top_10 <- head(df,10)
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Districtwise Proportion"
+p3 <- ggplot(data=top_10,
+             aes(x=shapeName,
+                 y=prop,
+                 fill=waterpoint_status))+
+  geom_col()+
+  geom_text(aes(label=paste0(prop,"%")),
+            position = position_stack(vjust=0.5),size=3)+
+  theme(axis.text.x=element_text(angle=0))+
+    xlab("Division")+
+    ylab("% of \n Waterpoints")+
+    ggtitle("Proportion of waterpoints by District")+
+    theme_bw()+
+    guides(fill=guide_legend(title="Waterpoint"),
+           shape=guide_legend(override.aes = list(size=0.5)))+
+    theme(plot.title = element_text(hjust=0.5, size=13),
+          legend.title = element_text(size=9),
+          legend.text = element_text(size=7),
+          axis.text = element_text(face="bold"),
+          axis.ticks.x=element_blank(),
+          axis.title.y=element_text(angle=0),
+          axis.title.y.left = element_text(vjust = 0.5))
+p3
+```
+
+**Insights**:
+
+Among the divisions which have most no. of waterpoints, in Ifelodun division, almost 50% of waterpoints are non-functional. It is a matter of concern.
+
+#### Which district has most no. of non-functional waterpoints?
+
+To find out the solution for this question, first let's prepare the data accordingly:
+
+1.  Filter non-functional waterpoints
+2.  Arrange it in descending order by the count values
+3.  Select top 10 divisions
+
+```{r}
+#| code-fold: true
+#| code-summary: "Preparing data"
+nonfunc_top10 <- df %>%
+  filter(waterpoint_status == "Non-Functional") %>%
+  arrange(desc(n)) 
+nonfunc_top10 <- head(nonfunc_top10, 10)
+```
+
+```{r,fig.width=10}
+#| code-fold: true
+#| code-summary: "Top 10 divisions"
+ggplot(data = nonfunc_top10,
+       aes(y = reorder(shapeName, n),
+           x=n)) + 
+  geom_bar(stat = "identity",
+           fill = "coral")+
+  labs(y= 'Division',
+       x='No. of Non-Functional water points',
+       title="Top 10 divisions by Non-Functional waterpoints",) +
+  geom_text(stat='identity', aes(label=paste0(n)),hjust=-0.5)+
+  theme(axis.title.y=element_text(angle=0), 
+        axis.ticks.x=element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(color='grey'),
+        plot.title = element_text(hjust = 0.5),
+        axis.title.y.left = element_text(vjust = 0.5), 
+        axis.text = element_text(face="bold") )
+```
+
+**Insights:**
+
+Among all 774 administrative level 2 divisions, Ifelodun has most no. of non-functional water points followed by Igabi, Irepodun, Oyun and Sabon-Gari.
+
+#### What are the causes of waterpoints to be non-functional?
+
+As our objective is to focus more on non-functional waterpoints, let us try to understand what are the major causes for a water point to become non-functional and which contributes the most?
+
+To find out the solution for this question, first let's prepare the data accordingly:
+
+1.  Import the data which is already filtered by non-functional waterpoints.
+2.  Similar causes are recoded to avoid redundancy
+
+```{r}
+#| code-fold: true
+#| code-summary: "Preparing data"
+wpt_nonfunctional <- read_rds("data2/wpt_nonfunctional.rds")
+wpt_nonfunctional <- wpt_nonfunctional %>%
+  mutate(status_cle=recode(status_cle, 
+                     'Non-Functional due to dry season'='Dry Season',
+                     'Non functional due to dry season'='Dry Season',
+                     'Abandoned/Decommissioned' = 'Abandoned / Decommissioned',
+                     'Abandoned' = 'Abandoned / Decommissioned'))
+nonfun_order <- factor(wpt_nonfunctional$status_cle, level = c('Non-Functional', 'Dry Season','Abandoned / Decommissioned'))
+
+
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Non-functional types"
+ggplot(data= wpt_nonfunctional, 
+       aes(x= nonfun_order)) +
+       geom_bar(fill= 'plum') +
+       #ylim(0, 150) +
+       geom_text(stat = 'count',
+           aes(label= paste0(stat(count), ', ', 
+                             round(stat(count)/sum(stat(count))*100, 
+                             1), '%')), vjust= -0.5, size= 2.5) +
+       labs(x= 'Reasons',
+            y= 'No. of \nwater points',
+            title = "What are the causes of non-functional water points?") +
+       theme(axis.title.y= element_text(angle=0), 
+             axis.ticks.x= element_blank(),
+             panel.background= element_blank(),
+             axis.line= element_line(color= 'grey'),
+             axis.title.y.left = element_text(vjust = 0.5),
+             plot.title = element_text(hjust=0.5))
+
+```
+
+**Insights**:
+
+Almost 90% of non-functional waterpoints are not reason specific. Some other reasons include dry season , waterpoints are decommissioned or some are left without being taken care of.

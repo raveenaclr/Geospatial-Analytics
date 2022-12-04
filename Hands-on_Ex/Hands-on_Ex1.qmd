@@ -414,7 +414,10 @@ tm_shape(mpsz_pop2020[mpsz_pop2020$REGION_N=="CENTRAL REGION", ])+
             legend.width = 5.0,
             legend.position = c("right", "bottom"),
             frame = FALSE) +
-  tm_borders(alpha = 0.5)
+  tm_borders(alpha = 0.5)+
+  tm_compass(type="8star",
+                       position=c("right", "top"))
+ 
 ```
 
 ### 6. Conclusion & Key Takeaways

@@ -39,7 +39,7 @@ Some of the important steps performed in this study are as follows
 For this study, data from [WPdx Global Data Repositories](https://www.waterpointdata.org/access-data/) and [geoBoundaries](https://www.geoboundaries.org/) are used. Both are in geospatial format. These dataset provide information about waterpoints and Nigeria's Administrative boundary shape file.
 
 | Data Type  | Description                                                                                                                   | Source                                                                |
-|------------------|-----------------------------------|-------------------|
+|--------------|--------------------------------------|--------------------|
 | Geospatial | Nigeria Level-2 Administrative Boundary                                                                                       | [Geoboundaries](https://www.geoboundaries.org/)                       |
 | Geospatial | Water point related data on [WPdx standard](https://www.waterpointdata.org/wp-content/uploads/2021/04/WPDx_Data_Standard.pdf) | [Waterpoint access data](https://www.waterpointdata.org/access-data/) |
 
@@ -665,7 +665,7 @@ nb2
 ```
 
 | Metrics                 | Results                                                                         |
-|-------------------------|----------------------------------------------|
+|------------------|------------------------------------------------------|
 | Region with no link     | Bakassi                                                                         |
 | Least connected regions | Chanchaga , Offa These two divisions are connected with only 1 division - Bosso |
 | Most connected region   | Mokwa - is connected with 14 other divisions                                    |
@@ -777,10 +777,13 @@ In the code chunk below, moran.test() of spdep package is used to calculate the 
 ```{r}
 #| code-fold: true
 #| code-summary: "Computing Moran's I"
+
+set.ZeroPolicyOption(TRUE)
 moran.test(nga_wp$`wpt non-functional`, 
            listw=rswm_q, 
            zero.policy = TRUE, 
            na.action=na.omit)
+
 ```
 
 **Insights:**
@@ -1094,7 +1097,7 @@ From the left map, we can understand the following
 
 From the right map, we can understand the following
 
--   For every corresponding I value, we can locate the regions which are significant are not.
+-   For every corresponding I value, we can locate the regions which are significant or not.
 
 -   Darker the region, higher the significance.
 

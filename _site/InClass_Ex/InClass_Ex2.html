@@ -208,7 +208,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#deep-dive-into-geospatial-analysis" id="toc-deep-dive-into-geospatial-analysis" class="nav-link active" data-scroll-target="#deep-dive-into-geospatial-analysis">Deep Dive into Geospatial Analysis</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -229,115 +235,360 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 </header>
 
+<p>For this study, data from <a href="https://www.waterpointdata.org/access-data/">WPdx Global Data Repositories</a> and <a href="https://www.geoboundaries.org/">geoBoundaries</a> are used. Both are in geospatial format. These dataset provide information about waterpoints and Nigeria’s Administrative boundary shape file.</p>
+<table class="table">
+<caption>Table1: Datasets Used</caption>
+<thead>
+<tr class="header">
+<th>Data Type</th>
+<th>Description</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Geospatial</td>
+<td>Nigeria Level-2 Administrative Boundary</td>
+<td><a href="https://www.geoboundaries.org/">Geoboundaries</a></td>
+</tr>
+<tr class="even">
+<td>Geospatial</td>
+<td>Water point related data on <a href="https://www.waterpointdata.org/wp-content/uploads/2021/04/WPDx_Data_Standard.pdf">WPdx standard</a></td>
+<td><a href="https://www.waterpointdata.org/access-data/">Waterpoint access data</a></td>
+</tr>
+</tbody>
+</table>
+<section id="deep-dive-into-geospatial-analysis" class="level3">
+<h3 class="anchored" data-anchor-id="deep-dive-into-geospatial-analysis">Deep Dive into Geospatial Analysis</h3>
+<p>Let us try to understand the dynamics of spatial patterns of non-functional water points in Nigeria and its diffusion over spatial boundaries using appropriate global and local measures of spatial association techniques.</p>
 <section id="loading-packages" class="level4">
 <h4 class="anchored" data-anchor-id="loading-packages">Loading packages</h4>
-<p><a href="https://cran.r-project.org/web/packages/pacman/pacman.pdf"><code>p_load</code></a> function pf <a href="https://github.com/trinker/pacman"><strong>pacman</strong></a> package is used to install and load sf and tidyverse pacages into R environment.</p>
+<p>Let us first load required packages into R environment. <a href="https://cran.r-project.org/web/packages/pacman/pacman.pdf"><code>p_load</code></a> function pf <a href="https://github.com/trinker/pacman"><strong>pacman</strong></a> package is used to install and load sf and tidyverse pacagkes into R environment.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(sf, tidyverse,spdep, tmap, funModeling)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details>
+<summary>Packages</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(sf, tidyverse, tmap, spdep, patchwork, ggthemes)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 </section>
-<section id="importing-gesospatial-data" class="level4">
-<h4 class="anchored" data-anchor-id="importing-gesospatial-data">Importing gesospatial data</h4>
-<p>The code chunk below uses <em>st_read()</em> function of <strong>sf</strong> package to import <em>geoBoundaries-NGA-ADM2_simplified</em> shapefile into R as a polygon feature data frame.</p>
+<section id="importing-geospatial-data" class="level4">
+<h4 class="anchored" data-anchor-id="importing-geospatial-data">Importing Geospatial Data</h4>
+<p>Now let us import both the geospatial data. The code chunk below uses <em>st_read()</em> function of <strong>sf</strong> package to import <em>geoBoundaries-NGA-ADM2_simplified</em> shapefile and <em>geo_export</em> into R environment.</p>
 <p>Two arguments are used :</p>
 <ul>
 <li><p>dsn - destination : to define the data path</p></li>
 <li><p><em>layer</em> - to provide the shapefile name</p></li>
 </ul>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>ngaGeo <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">"data2/geospatial"</span>, </span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>                <span class="at">layer =</span> <span class="st">"geoBoundaries-NGA-ADM2"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Reading layer `geoBoundaries-NGA-ADM2' from data source 
-  `D:\raveenaclr\Geospatial Analytics\InClass_Ex\data2\geospatial' 
-  using driver `ESRI Shapefile'
-Simple feature collection with 774 features and 5 fields
-Geometry type: MULTIPOLYGON
-Dimension:     XY
-Bounding box:  xmin: 2.668534 ymin: 4.273007 xmax: 14.67882 ymax: 13.89442
-Geodetic CRS:  WGS 84</code></pre>
+<details>
+<summary>Importing Data</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>waterpts <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">"data2/aspatial"</span>,</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>              <span class="at">layer =</span> <span class="st">"geo_export"</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>              <span class="at">crs =</span> <span class="dv">4326</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(clean_coun <span class="sc">==</span> <span class="st">"Nigeria"</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>nigeria <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">"data2/geospatial"</span>,</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>               <span class="at">layer =</span> <span class="st">"geoBoundaries-NGA-ADM2"</span>,</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>               <span class="at">crs =</span> <span class="dv">4326</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
-</div>
-<p>The message above reveals that the geospatial objects are multipolygon features. There are a total of 774 multipolygon features and 5 fields in ngaGeo simple feature data frame. ngaGeo is in <strong>wgs84</strong> coordinates systems</p>
-</section>
-<section id="importing-aspatial-data" class="level4">
-<h4 class="anchored" data-anchor-id="importing-aspatial-data">Importing aspatial data</h4>
-<p>Since <em>nigeria_waterpoints</em> data set is in csv file format, we will use <a href="https://readr.tidyverse.org/reference/read_delim.html"><em>read_csv()</em></a> of <strong>readr</strong> package to import <em>nigeria_waterpoints.csv</em> as shown the code chunk below. The output R object is called <em>ngawaterpoints</em> and it is a <a href="https://r4ds.had.co.nz/tibbles.html">tibble data frame</a>.</p>
+<ul>
+<li><p><code>st_read()</code> of <strong>sf</strong> package is used to import <em>geo_export</em> and <em>geoBoundaries-NGA-ADM2_simplified</em> shapefile into R environment and save the imported geospatial data into simple feature data table.</p></li>
+<li><p><code>filter()</code> of dplyr package is used to extract water point records of Nigeria.</p></li>
+</ul>
+<p>In order to reduce the file size let us save the data in .rds format.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>ngawaterpoints  <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"data2/aspatial/nigeria_waterpoints.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning: One or more parsing issues, see `problems()` for details</code></pre>
+<details>
+<summary>Saving the file</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(waterpts, <span class="st">"data2/wp_nga.rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Rows: 95008 Columns: 70
-── Column specification ────────────────────────────────────────────────────────
-Delimiter: ","
-chr (38): #source, #report_date, #status_id, #water_source_clean, #water_sou...
-dbl (20): row_id, #lat_deg, #lon_deg, #install_year, #distance_to_primary_ro...
-lgl (12): #clean_adm3, #clean_adm4, #installer, #rehab_year, #rehabilitator,...
-
-ℹ Use `spec()` to retrieve the full column specification for this data.
-ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
-</div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">list</span>(ngawaterpoints)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[[1]]
-# A tibble: 95,008 × 70
-   row_id `#source`      #lat_…¹ #lon_…² #repo…³ #stat…⁴ #wate…⁵ #wate…⁶ #wate…⁷
-    &lt;dbl&gt; &lt;chr&gt;            &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;   &lt;chr&gt;   &lt;chr&gt;   &lt;chr&gt;   &lt;chr&gt;  
- 1 429068 GRID3             7.98    5.12 08/29/… Unknown &lt;NA&gt;    &lt;NA&gt;    Tapsta…
- 2 222071 Federal Minis…    6.96    3.60 08/16/… Yes     Boreho… Well    Mechan…
- 3 160612 WaterAid          6.49    7.93 12-04-… Yes     Boreho… Well    Hand P…
- 4 160669 WaterAid          6.73    7.65 12-04-… Yes     Boreho… Well    &lt;NA&gt;   
- 5 160642 WaterAid          6.78    7.66 12-04-… Yes     Boreho… Well    Hand P…
- 6 160628 WaterAid          6.96    7.78 12-04-… Yes     Boreho… Well    Hand P…
- 7 160632 WaterAid          7.02    7.84 12-04-… Yes     Boreho… Well    Hand P…
- 8 642747 Living Water …    7.33    8.98 10-03-… Yes     Boreho… Well    Mechan…
- 9 642456 Living Water …    7.17    9.11 10-03-… Yes     Boreho… Well    Hand P…
-10 641347 Living Water …    7.20    9.22 03/28/… Yes     Boreho… Well    Hand P…
-# … with 94,998 more rows, 61 more variables: `#water_tech_category` &lt;chr&gt;,
-#   `#facility_type` &lt;chr&gt;, `#clean_country_name` &lt;chr&gt;, `#clean_adm1` &lt;chr&gt;,
-#   `#clean_adm2` &lt;chr&gt;, `#clean_adm3` &lt;lgl&gt;, `#clean_adm4` &lt;lgl&gt;,
-#   `#install_year` &lt;dbl&gt;, `#installer` &lt;lgl&gt;, `#rehab_year` &lt;lgl&gt;,
-#   `#rehabilitator` &lt;lgl&gt;, `#management_clean` &lt;chr&gt;, `#status_clean` &lt;chr&gt;,
-#   `#pay` &lt;chr&gt;, `#fecal_coliform_presence` &lt;lgl&gt;,
-#   `#fecal_coliform_value` &lt;lgl&gt;, `#subjective_quality` &lt;chr&gt;, …
-# ℹ Use `print(n = ...)` to see more rows, and `colnames()` to see all variable names</code></pre>
-</div>
-</div>
-</section>
-<section id="creating-a-simple-feature-data-frame-from-an-aspatial-data-frame" class="level4">
-<h4 class="anchored" data-anchor-id="creating-a-simple-feature-data-frame-from-an-aspatial-data-frame">Creating a simple feature data frame from an aspatial data frame</h4>
-<p>The code chunk below converts <em>ngawaterpoints</em> data frame into a simple feature data frame by using <a href="https://r-spatial.github.io/sf/reference/st_as_sf.html"><em>st_as_sf()</em></a> of <strong>sf</strong> packages</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>ngawater_sf <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(ngawaterpoints , </span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                       <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"#lon_deg"</span>, <span class="st">"#lat_deg"</span>),</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>                       <span class="at">crs=</span><span class="dv">4326</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">st_transform</span>(<span class="at">crs =</span> <span class="dv">26391</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
+<p><code>write_rds()</code> of readr package is used to save the extracted sf data table into an output file in rds data format.</p>
 </section>
 <section id="data-wrangling" class="level4">
 <h4 class="anchored" data-anchor-id="data-wrangling">Data Wrangling</h4>
+<p>Let us now preprocess the data before performing any analysis</p>
+</section>
+<section id="replacing-na-values-into-unknown" class="level4">
+<h4 class="anchored" data-anchor-id="replacing-na-values-into-unknown">Replacing NA values into Unknown</h4>
+<p>Here, we are recoding the NA values into Unknown. In the code chunk below, <code>replace_na()</code> is used to recode all the <em>NA</em> values in <em>status_cle</em> field into <em>Unknown</em>.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>ngawater_sf <span class="ot">&lt;-</span>ngawater_sf <span class="sc">%&gt;%</span> </span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mutate</span>(<span class="at">waterpoint_status=</span><span class="fu">recode</span>(<span class="st">`</span><span class="at">#status_clean</span><span class="st">`</span>, </span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>                     <span class="st">'Abandoned'</span><span class="ot">=</span><span class="st">'Non-Functional'</span>,</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>                     <span class="st">'Abandoned/Decommissioned'</span><span class="ot">=</span><span class="st">'Non-Functional'</span>,</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>                     <span class="st">'Non functional due to dry season'</span><span class="ot">=</span><span class="st">'Non-Functional'</span>,</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>                     <span class="st">'Non-Functional due to dry season'</span><span class="ot">=</span><span class="st">'Non-Functional'</span>,</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>                     <span class="st">'Functional but not in use'</span><span class="ot">=</span><span class="st">'Functional'</span>,</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>                     <span class="st">'Functional but needs repair'</span><span class="ot">=</span> <span class="st">'Functional'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details>
+<summary>Replacing NA</summary>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>wp_nga <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"data2/wp_nga.rds"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">status_cle =</span> <span class="fu">replace_na</span>(status_cle, <span class="st">"Unknown"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="extracting-funtional-non-functional-and-unknown-water-points" class="level4">
+<h4 class="anchored" data-anchor-id="extracting-funtional-non-functional-and-unknown-water-points">Extracting Funtional, Non-Functional and Unknown water points</h4>
+<p>As our objective is to focus on waterpoints, let us extract the three types and save it as a dataframe for further analysis</p>
+<div class="cell">
+<details>
+<summary>Extracting waterpoints</summary>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>wpt_functional <span class="ot">&lt;-</span> wp_nga <span class="sc">%&gt;%</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(status_cle <span class="sc">%in%</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>           <span class="fu">c</span>(<span class="st">"Functional"</span>, </span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>             <span class="st">"Functional but not in use"</span>,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>             <span class="st">"Functional but needs repair"</span>))</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>wpt_nonfunctional <span class="ot">&lt;-</span> wp_nga <span class="sc">%&gt;%</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(status_cle <span class="sc">%in%</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>           <span class="fu">c</span>(<span class="st">"Abandoned/Decommissioned"</span>, </span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>             <span class="st">"Abandoned"</span>,</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>             <span class="st">"Non-Functional"</span>,</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>             <span class="st">"Non functional due to dry season"</span>,</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>             <span class="st">"Non-Functional due to dry season"</span>))</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>wpt_unknown <span class="ot">&lt;-</span> wp_nga <span class="sc">%&gt;%</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(status_cle <span class="sc">==</span> <span class="st">"Unknown"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>In the code chunk above, <code>filter()</code> of dplyr is used to select the specific water points.</p>
+</section>
+<section id="computing-number-of-waterpoints-in-each-second-level-administrative-division" class="level4">
+<h4 class="anchored" data-anchor-id="computing-number-of-waterpoints-in-each-second-level-administrative-division">Computing Number of Waterpoints in each Second-level Administrative Division</h4>
+<p>We have to perform 2 steps to calculate the total number of functional, non-functional and Unknown waterpoints in each division.</p>
+<ol type="1">
+<li><p>Let us identify no. of waterpoints located inside each division by using <a href="https://r-spatial.github.io/sf/reference/geos_binary_pred.html">st_intersects()</a>.</p></li>
+<li><p>Next, let us calculate numbers of pre-schools that fall inside each planning subzone by using <a href="https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/length"><em>length()</em></a> function.</p></li>
+</ol>
+<div class="cell">
+<details>
+<summary>Computing numbers</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>nga_wp <span class="ot">&lt;-</span> nigeria <span class="sc">%&gt;%</span> </span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">total wpt</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">lengths</span>(</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">st_intersects</span>(nigeria, wp_nga))) <span class="sc">%&gt;%</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">wpt functional</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">lengths</span>(</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">st_intersects</span>(nigeria, wpt_functional))) <span class="sc">%&gt;%</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">wpt non-functional</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">lengths</span>(</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">st_intersects</span>(nigeria, wpt_nonfunctional))) <span class="sc">%&gt;%</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">wpt unknown</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">lengths</span>(</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">st_intersects</span>(nigeria, wpt_unknown)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="computing-proportion-of-functional-and-non-functional-water-points" class="level4">
+<h4 class="anchored" data-anchor-id="computing-proportion-of-functional-and-non-functional-water-points">Computing Proportion of Functional and Non-Functional water points</h4>
+<p>Now, let us calculate what is the overall proportion of functional and non-functional waterpoints by dividing the no. of functional waterpoints by the total no. of waterpoints. Similarly, for non-functional waterpoint proportion, numerator is replaced by non-functional waterpoint.</p>
+<div class="cell">
+<details>
+<summary>Computing proportion</summary>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>nga_wp <span class="ot">&lt;-</span> nga_wp <span class="sc">%&gt;%</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">pct_functional =</span> <span class="st">`</span><span class="at">wpt functional</span><span class="st">`</span><span class="sc">/</span><span class="st">`</span><span class="at">total wpt</span><span class="st">`</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">pct_non-functional</span><span class="st">`</span> <span class="ot">=</span> <span class="st">`</span><span class="at">wpt non-functional</span><span class="st">`</span><span class="sc">/</span><span class="st">`</span><span class="at">total wpt</span><span class="st">`</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="saving-the-final-rds-file" class="level4">
+<h4 class="anchored" data-anchor-id="saving-the-final-rds-file">Saving the final rds file</h4>
+<p>In order to manage the storage data efficiently, we are saving the final data frame in rds format.</p>
+<div class="cell">
+<details>
+<summary>Saving rds file</summary>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(nga_wp, <span class="st">"data2/nga_wp.rds"</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(wpt_functional, <span class="st">"data2/wpt_functional.rds"</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">write_rds</span>(wpt_nonfunctional, <span class="st">"data2/wpt_nonfunctional.rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="exploratory-data-analysis" class="level4">
+<h4 class="anchored" data-anchor-id="exploratory-data-analysis">Exploratory Data Analysis</h4>
+<p>Before performing spatial analysis, let us first do some preliminary data analysis to understand the data better in terms of water points.</p>
+</section>
+<section id="what-is-the-proportion-of-functional-and-non-functional-water-points" class="level4">
+<h4 class="anchored" data-anchor-id="what-is-the-proportion-of-functional-and-non-functional-water-points">What is the proportion of functional and non-functional water points?</h4>
+<p>Before visualising, its important for us to prepare the data. Based on <a href="https://www.waterpointdata.org/wp-content/uploads/2021/04/WPDx_Data_Standard.pdf">WPDx Data Standard</a>, the variable ‘#status_id’ refers to <em>Presence of Water when Assessed.</em> Binary response, i.e.&nbsp;Yes/No are recoded into Functional / Not-Functional.</p>
+<div class="cell">
+<details>
+<summary>Preparing the data</summary>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>nga_sf <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"data2/nga_sf.rds"</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>ngawater_sf <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"data2/ngawater_sf.rds"</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>ngawater_sf<span class="ot">&lt;-</span>ngawater_sf <span class="sc">%&gt;%</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="st">`</span><span class="at">#status_id</span><span class="st">`</span><span class="ot">=</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>                <span class="fu">case_when</span>(<span class="st">`</span><span class="at">#status_id</span><span class="st">`</span><span class="sc">==</span><span class="st">"Yes"</span><span class="sc">~</span><span class="st">"Functional"</span>,</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>                          <span class="st">`</span><span class="at">#status_id</span><span class="st">`</span><span class="sc">==</span><span class="st">"No"</span><span class="sc">~</span><span class="st">"Non-Functional"</span>,</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>                          <span class="st">`</span><span class="at">#status_id</span><span class="st">`</span><span class="sc">==</span> <span class="st">"Unknown"</span><span class="sc">~</span><span class="st">"unknown"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(ngawater_sf<span class="sc">$</span>waterpoint_status)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] NA               "Functional"     "Non-Functional"</code></pre>
+<details>
+<summary>Proportion graph</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data=</span> ngawater_sf, </span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">x=</span> <span class="st">`</span><span class="at">#status_id</span><span class="st">`</span>)) <span class="sc">+</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>       <span class="fu">geom_bar</span>(<span class="at">fill=</span> <span class="st">'#CD5C5C'</span>) <span class="sc">+</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>       <span class="co">#ylim(0, 150) +</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>       <span class="fu">geom_text</span>(<span class="at">stat =</span> <span class="st">'count'</span>,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>           <span class="fu">aes</span>(<span class="at">label=</span> <span class="fu">paste0</span>(<span class="fu">stat</span>(count), <span class="st">', '</span>, </span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>                             <span class="fu">round</span>(<span class="fu">stat</span>(count)<span class="sc">/</span><span class="fu">sum</span>(<span class="fu">stat</span>(count))<span class="sc">*</span><span class="dv">100</span>, </span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>                             <span class="dv">1</span>), <span class="st">'%'</span>)), <span class="at">vjust=</span> <span class="sc">-</span><span class="fl">0.5</span>, <span class="at">size=</span> <span class="fl">2.5</span>) <span class="sc">+</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>       <span class="fu">labs</span>(<span class="at">y=</span> <span class="st">'No. of </span><span class="sc">\n</span><span class="st">water points'</span>,</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>            <span class="at">x=</span> <span class="st">'Water Points'</span>,</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>            <span class="at">title =</span> <span class="st">"Distribution of water points"</span>) <span class="sc">+</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>       <span class="fu">theme</span>(<span class="at">axis.title.y=</span> <span class="fu">element_text</span>(<span class="at">angle=</span><span class="dv">0</span>), </span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>             <span class="at">axis.ticks.x=</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>             <span class="at">panel.background=</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>             <span class="at">axis.line=</span> <span class="fu">element_line</span>(<span class="at">color=</span> <span class="st">'grey'</span>),</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>             <span class="at">axis.title.y.left =</span> <span class="fu">element_text</span>(<span class="at">vjust =</span> <span class="fl">0.5</span>),</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>             <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust=</span><span class="fl">0.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<p><img src="InClass_Ex2_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid" width="672"></p>
 </div>
 </div>
+<p><strong>Insights</strong>:</p>
+<p>Nigeria consists of almost 55% of functional, 34% of non-functional and 11% of unknown waterpoints.</p>
+</section>
+<section id="what-is-the-district-wise-proportion-of-water-points" class="level4">
+<h4 class="anchored" data-anchor-id="what-is-the-district-wise-proportion-of-water-points">What is the district wise proportion of water points?</h4>
+<p>First let us prepare the data</p>
+<ol type="1">
+<li>Filter all the NA values in waterpoint_status</li>
+<li>Group by shape name and waterpoint status</li>
+<li>Compute the count and proposition by dividing the count by total number of waterpoints in that division</li>
+<li>Selecting top 10 rows with more no. of waterpoints</li>
+</ol>
+<div class="cell">
+<details>
+<summary>Preparing data</summary>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>nga_sf <span class="ot">&lt;-</span> nga_sf <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(waterpoint_status)) </span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>df <span class="ot">&lt;-</span> nga_sf <span class="sc">%&gt;%</span> </span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(shapeName,waterpoint_status) <span class="sc">%&gt;%</span> </span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tally</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(shapeName) <span class="sc">%&gt;%</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">total=</span><span class="fu">sum</span>(n),</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">prop=</span><span class="fu">round</span>(n<span class="sc">*</span><span class="dv">100</span><span class="sc">/</span>total)) <span class="sc">%&gt;%</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(total))</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>top_10 <span class="ot">&lt;-</span> <span class="fu">head</span>(df,<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<details>
+<summary>Districtwise Proportion</summary>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>p3 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data=</span>top_10,</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>             <span class="fu">aes</span>(<span class="at">x=</span>shapeName,</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>                 <span class="at">y=</span>prop,</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">fill=</span>waterpoint_status))<span class="sc">+</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>()<span class="sc">+</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label=</span><span class="fu">paste0</span>(prop,<span class="st">"%"</span>)),</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>            <span class="at">position =</span> <span class="fu">position_stack</span>(<span class="at">vjust=</span><span class="fl">0.5</span>),<span class="at">size=</span><span class="dv">3</span>)<span class="sc">+</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x=</span><span class="fu">element_text</span>(<span class="at">angle=</span><span class="dv">0</span>))<span class="sc">+</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">xlab</span>(<span class="st">"Division"</span>)<span class="sc">+</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ylab</span>(<span class="st">"% of </span><span class="sc">\n</span><span class="st"> Waterpoints"</span>)<span class="sc">+</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggtitle</span>(<span class="st">"Proportion of waterpoints by District"</span>)<span class="sc">+</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_bw</span>()<span class="sc">+</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">guides</span>(<span class="at">fill=</span><span class="fu">guide_legend</span>(<span class="at">title=</span><span class="st">"Waterpoint"</span>),</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>           <span class="at">shape=</span><span class="fu">guide_legend</span>(<span class="at">override.aes =</span> <span class="fu">list</span>(<span class="at">size=</span><span class="fl">0.5</span>)))<span class="sc">+</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust=</span><span class="fl">0.5</span>, <span class="at">size=</span><span class="dv">13</span>),</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>          <span class="at">legend.title =</span> <span class="fu">element_text</span>(<span class="at">size=</span><span class="dv">9</span>),</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>          <span class="at">legend.text =</span> <span class="fu">element_text</span>(<span class="at">size=</span><span class="dv">7</span>),</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>          <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">face=</span><span class="st">"bold"</span>),</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>          <span class="at">axis.ticks.x=</span><span class="fu">element_blank</span>(),</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>          <span class="at">axis.title.y=</span><span class="fu">element_text</span>(<span class="at">angle=</span><span class="dv">0</span>),</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>          <span class="at">axis.title.y.left =</span> <span class="fu">element_text</span>(<span class="at">vjust =</span> <span class="fl">0.5</span>))</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>p3</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<p><img src="InClass_Ex2_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p><strong>Insights</strong>:</p>
+<p>Among the divisions which have most no. of waterpoints, in Ifelodun division, almost 50% of waterpoints are non-functional. It is a matter of concern.</p>
+</section>
+<section id="which-district-has-most-no.-of-non-functional-waterpoints" class="level4">
+<h4 class="anchored" data-anchor-id="which-district-has-most-no.-of-non-functional-waterpoints">Which district has most no. of non-functional waterpoints?</h4>
+<p>To find out the solution for this question, first let’s prepare the data accordingly:</p>
+<ol type="1">
+<li>Filter non-functional waterpoints</li>
+<li>Arrange it in descending order by the count values</li>
+<li>Select top 10 divisions</li>
+</ol>
+<div class="cell">
+<details>
+<summary>Preparing data</summary>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>nonfunc_top10 <span class="ot">&lt;-</span> df <span class="sc">%&gt;%</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(waterpoint_status <span class="sc">==</span> <span class="st">"Non-Functional"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(n)) </span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>nonfunc_top10 <span class="ot">&lt;-</span> <span class="fu">head</span>(nonfunc_top10, <span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<details>
+<summary>Top 10 divisions</summary>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> nonfunc_top10,</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">reorder</span>(shapeName, n),</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>           <span class="at">x=</span>n)) <span class="sc">+</span> </span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>,</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>           <span class="at">fill =</span> <span class="st">"coral"</span>)<span class="sc">+</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y=</span> <span class="st">'Division'</span>,</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">x=</span><span class="st">'No. of Non-Functional water points'</span>,</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">title=</span><span class="st">"Top 10 divisions by Non-Functional waterpoints"</span>,) <span class="sc">+</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="at">stat=</span><span class="st">'identity'</span>, <span class="fu">aes</span>(<span class="at">label=</span><span class="fu">paste0</span>(n)),<span class="at">hjust=</span><span class="sc">-</span><span class="fl">0.5</span>)<span class="sc">+</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.title.y=</span><span class="fu">element_text</span>(<span class="at">angle=</span><span class="dv">0</span>), </span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks.x=</span><span class="fu">element_blank</span>(),</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>        <span class="at">panel.background =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.line =</span> <span class="fu">element_line</span>(<span class="at">color=</span><span class="st">'grey'</span>),</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>        <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>),</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.y.left =</span> <span class="fu">element_text</span>(<span class="at">vjust =</span> <span class="fl">0.5</span>), </span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">face=</span><span class="st">"bold"</span>) )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<p><img src="InClass_Ex2_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid" width="960"></p>
+</div>
+</div>
+<p><strong>Insights:</strong></p>
+<p>Among all 774 administrative level 2 divisions, Ifelodun has most no. of non-functional water points followed by Igabi, Irepodun, Oyun and Sabon-Gari.</p>
+</section>
+<section id="what-are-the-causes-of-waterpoints-to-be-non-functional" class="level4">
+<h4 class="anchored" data-anchor-id="what-are-the-causes-of-waterpoints-to-be-non-functional">What are the causes of waterpoints to be non-functional?</h4>
+<p>As our objective is to focus more on non-functional waterpoints, let us try to understand what are the major causes for a water point to become non-functional and which contributes the most?</p>
+<p>To find out the solution for this question, first let’s prepare the data accordingly:</p>
+<ol type="1">
+<li>Import the data which is already filtered by non-functional waterpoints.</li>
+<li>Similar causes are recoded to avoid redundancy</li>
+</ol>
+<div class="cell">
+<details>
+<summary>Preparing data</summary>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>wpt_nonfunctional <span class="ot">&lt;-</span> <span class="fu">read_rds</span>(<span class="st">"data2/wpt_nonfunctional.rds"</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>wpt_nonfunctional <span class="ot">&lt;-</span> wpt_nonfunctional <span class="sc">%&gt;%</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">status_cle=</span><span class="fu">recode</span>(status_cle, </span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>                     <span class="st">'Non-Functional due to dry season'</span><span class="ot">=</span><span class="st">'Dry Season'</span>,</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>                     <span class="st">'Non functional due to dry season'</span><span class="ot">=</span><span class="st">'Dry Season'</span>,</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>                     <span class="st">'Abandoned/Decommissioned'</span> <span class="ot">=</span> <span class="st">'Abandoned / Decommissioned'</span>,</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>                     <span class="st">'Abandoned'</span> <span class="ot">=</span> <span class="st">'Abandoned / Decommissioned'</span>))</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>nonfun_order <span class="ot">&lt;-</span> <span class="fu">factor</span>(wpt_nonfunctional<span class="sc">$</span>status_cle, <span class="at">level =</span> <span class="fu">c</span>(<span class="st">'Non-Functional'</span>, <span class="st">'Dry Season'</span>,<span class="st">'Abandoned / Decommissioned'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<details>
+<summary>Non-functional types</summary>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data=</span> wpt_nonfunctional, </span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>       <span class="fu">aes</span>(<span class="at">x=</span> nonfun_order)) <span class="sc">+</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>       <span class="fu">geom_bar</span>(<span class="at">fill=</span> <span class="st">'plum'</span>) <span class="sc">+</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>       <span class="co">#ylim(0, 150) +</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>       <span class="fu">geom_text</span>(<span class="at">stat =</span> <span class="st">'count'</span>,</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>           <span class="fu">aes</span>(<span class="at">label=</span> <span class="fu">paste0</span>(<span class="fu">stat</span>(count), <span class="st">', '</span>, </span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>                             <span class="fu">round</span>(<span class="fu">stat</span>(count)<span class="sc">/</span><span class="fu">sum</span>(<span class="fu">stat</span>(count))<span class="sc">*</span><span class="dv">100</span>, </span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>                             <span class="dv">1</span>), <span class="st">'%'</span>)), <span class="at">vjust=</span> <span class="sc">-</span><span class="fl">0.5</span>, <span class="at">size=</span> <span class="fl">2.5</span>) <span class="sc">+</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>       <span class="fu">labs</span>(<span class="at">x=</span> <span class="st">'Reasons'</span>,</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>            <span class="at">y=</span> <span class="st">'No. of </span><span class="sc">\n</span><span class="st">water points'</span>,</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>            <span class="at">title =</span> <span class="st">"What are the causes of non-functional water points?"</span>) <span class="sc">+</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>       <span class="fu">theme</span>(<span class="at">axis.title.y=</span> <span class="fu">element_text</span>(<span class="at">angle=</span><span class="dv">0</span>), </span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>             <span class="at">axis.ticks.x=</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>             <span class="at">panel.background=</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>             <span class="at">axis.line=</span> <span class="fu">element_line</span>(<span class="at">color=</span> <span class="st">'grey'</span>),</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>             <span class="at">axis.title.y.left =</span> <span class="fu">element_text</span>(<span class="at">vjust =</span> <span class="fl">0.5</span>),</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>             <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust=</span><span class="fl">0.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<p><img src="InClass_Ex2_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p><strong>Insights</strong>:</p>
+<p>Almost 90% of non-functional waterpoints are not reason specific. Some other reasons include dry season , waterpoints are decommissioned or some are left without being taken care of.</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->
