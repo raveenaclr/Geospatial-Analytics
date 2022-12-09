@@ -5,7 +5,7 @@ title: "Spatial Patterns of Non-functional points - Nigeria"
 For this study, data from [WPdx Global Data Repositories](https://www.waterpointdata.org/access-data/) and [geoBoundaries](https://www.geoboundaries.org/) are used. Both are in geospatial format. These dataset provide information about waterpoints and Nigeria's Administrative boundary shape file.
 
 | Data Type  | Description                                                                                                                   | Source                                                                |
-|--------------|--------------------------------------|--------------------|
+|------------|-------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
 | Geospatial | Nigeria Level-2 Administrative Boundary                                                                                       | [Geoboundaries](https://www.geoboundaries.org/)                       |
 | Geospatial | Water point related data on [WPdx standard](https://www.waterpointdata.org/wp-content/uploads/2021/04/WPDx_Data_Standard.pdf) | [Waterpoint access data](https://www.waterpointdata.org/access-data/) |
 

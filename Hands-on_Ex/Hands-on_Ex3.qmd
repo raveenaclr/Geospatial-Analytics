@@ -38,7 +38,11 @@ In this study, we are going to delineate [Shan State](https://en.wikipedia.org/w
 
 Some of the important steps performed in this study are as follows
 
-performing custer analysis by using *hclust()* of Base R; performing spatially constrained cluster analysis using *skater()* of Base visualising the analysis output by using **ggplot2** and **tmap** package.
+-   performing custer analysis by using *hclust()* of Base R;
+
+-   performing spatially constrained cluster analysis using *skater()* of Base
+
+-   visualising the analysis output by using **ggplot2** and **tmap** package.
 
 ### 4. Data
 
@@ -204,7 +208,7 @@ tv <- ggplot(data=ict_derived,
   geom_histogram(bins=20, 
                  color="black", 
                  fill="coral")+
-  geom_density(color="red",
+  geom_density(color="black",
                alpha = 0.2)
 
 llphone <- ggplot(data=ict_derived, 

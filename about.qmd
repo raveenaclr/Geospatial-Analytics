@@ -2,7 +2,6 @@
 title: "Geospatial Analytics"
 ---
 
-
 <div>
 
 ![](images/geospatial.jpg){fig-align="center"}
