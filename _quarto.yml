@@ -13,6 +13,7 @@ website:
           - href: Hands-on_Ex/Hands-on_Ex2.qmd
           - href: Hands-on_Ex/Hands-on_Ex3.qmd
           - href: Hands-on_Ex/Hands-on_Ex4.qmd
+          - href: Hands-on_Ex/rgeoda.qmd
       - text: Take-home Exercises
         menu: 
           - href: TakeHomeEx/ex1.qmd
