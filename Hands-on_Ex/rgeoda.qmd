@@ -24,7 +24,7 @@ There are three different approaches explicitly incorporate the contiguity const
 #| code-fold: true
 #| code-summary: "Loading Packages"
 pacman::p_load(sf, tidyverse, tmap, rgeoda,
-               plotly, GGally, spdep, hrbrthemes, viridis)
+               plotly, GGally, spdep)
 ```
 
 ### Reading Data files
