@@ -1,0 +1,1876 @@
+---
+title: "Why regionalisation is vital? Clustering of multivariate water point attributes in Nigeria"
+---
+
+### 1. Introduction
+
+In the previous take home exercise 1, we have understood the dynamics of spatial patterns of non-functional water points in Nigeria and its diffusion over spatial boundaries with the help of appropriate global and local measures of spatial association techniques. In this exercise, let us emphasize on [regionalisation](https://www.researchgate.net/publication/28153673_Supervised_Regionalization_Methods_A_Survey/link/0fcfd5094046b13d35000000/download). A regionalisation is a special kind of clustering where the objective is to group observations which are similar in their statistical attributes and in their spatial location.
+
+### 2. Objective
+
+The main aim of the study is to delineate homogeneous region of Nigeria by using geographically referenced multivariate waterpoint attributes data. Some of the major analysis include
+
+-   Hierarchical cluster analysis
+
+-   Spatially constrained cluster analysis using SKATER approach
+
+-   Spatially constrained and Non-spatially constrained cluster analysis using ClustGeo
+
+-   Spatially constrained cluster analysis using rgeoda
+
+### 3. Glimpse of Steps
+
+Some of the important steps performed in this study are as follows
+
+-   Importing shapefile into R using sf package.
+
+-   Deriving the proportion of functional and non-functional water point at LGA level using appropriate tidyr and dplyr methods.
+
+-   Combining the geospatial and aspatial data frame into simple feature data frame.
+
+-   Delineating water point measures functional regions by using conventional hierarchical clustering.
+
+-   Delineating water point measures functional regions by using spatially constrained clustering algorithms.
+
+-   Thematic Mapping - Plotting maps to show the water points measures derived by using appropriate statistical graphics and choropleth mapping technique.
+
+-   Analytical Mapping - Plotting functional regions delineated by using both non-spatially constrained and spatially constrained clustering algorithms.
+
+### 4. Data
+
+For this study, data from [WPdx Global Data Repositories](https://www.waterpointdata.org/access-data/) and [geoBoundaries](https://www.geoboundaries.org/) are used which are in csv and shape file formats respectively. These datasets provide information about waterpoints and Nigeria's Administrative boundary shape file.
+
+| Data Type  | Description                                                                                                                   | Format     | Source                                                                |
+|----------------|-------------------------|----------------|----------------|
+| Geospatial | Nigeria Level-2 Administrative Boundary                                                                                       | Shape file | [Geoboundaries](https://www.geoboundaries.org/)                       |
+| Aspatial   | Water point related data on [WPdx standard](https://www.waterpointdata.org/wp-content/uploads/2021/04/WPDx_Data_Standard.pdf) | csv        | [Waterpoint access data](https://www.waterpointdata.org/access-data/) |
+
+: Table1: Datasets Used
+
+### 5. Deep Dive into Geospatial Analysis
+
+Let us try to delineate homogeneous region of Nigeria by using geographically referenced multivariate waterpoint attributes data with sptially constrained and non-spatially constrained clustering methods
+
+#### 5.1 Loading packages
+
+Let us first load required packages into R environment. [`p_load`](https://cran.r-project.org/web/packages/pacman/pacman.pdf) function pf [**pacman**](https://github.com/trinker/pacman) package is used to install the following packages into R environment.
+
+-   **sf**, **rgdal** and **spdep -** Spatial data handling
+
+-   **tidyverse**, especially **readr**, **ggplot2** and **dplyr -** Attribute data handling
+
+-   **tmap -** Choropleth mapping
+
+-   **coorplot**, **ggpubr**, and **heatmaply -** Multivariate data visualisation and analysis
+
+-   **cluster, ClustGeo, rgeoda -** Cluster analysis
+
+-   **ggthemes** - Effective background and layouts
+
+-   **knitr, plotly** - table, Interactive charts
+
+-   **ggstatplot** - Statistical tests
+
+```{r}
+#| code-fold: true
+#| code-summary: "Loading Packages"
+pacman::p_load(sf, tidyverse, tmap, corrplot, 
+               psych, ggpubr, cluster, factoextra,
+               heatmaply, spdep, ClustGeo,
+               rgdal, NbClust, GGally,ggthemes, 
+               knitr,plotly,rgeoda, ggstatsplot)
+```
+
+#### 5.2 Importing Geospatial Data
+
+Now let us import geospatial data. The code chunk below uses *st_read()* function of **sf** package to import *geoBoundaries-NGA-ADM2* shapefile into R environment.
+
+Two arguments are used :
+
+-   *dsn* - destination : to define the data path
+
+-   *layer* - to provide the shapefile name
+
+-   *crs* - coordinate reference system in epsg format. EPSG: 4326 is wgs84 Geographic Coordinate System
+
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "Importing geospatial data"
+nga <- st_read(dsn = "data2/geospatial",
+               layer = "geoBoundaries-NGA-ADM2",
+               crs = 4326)
+
+```
+
+#### 5.3 Importing Spatial Data
+
+Now let us import spatial data. Since water point data set is in csv file format, we will use read_csv() of readr package to import Water_Point_Data_Exchange.csv as shown the code chunk below. The output R object is called listings and it is a tibble data frame.
+
+-   `filter()` of dplyr package is used to extract water point records of Nigeria.
+
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "Importing aspatial data"
+wp_nga <- read_csv("data2/aspatial/Water_Point_Data_Exchange.csv") %>%
+  filter(`#clean_country_name` == "Nigeria")
+
+```
+
+#### 5.4 Creating Simple feature data frame from an aspatial and geospatial data frame
+
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "Converting Projection"
+wp_nga_sf <- st_as_sf(wp_nga, 
+                       coords = c("#lat_deg", "#lon_deg"),
+                       crs=4326) %>%
+  st_transform(crs = 26391)
+
+```
+
+crs argument is to provide the coordinates system in epsg format. EPSG: 4326 is wgs84 Geographic Coordinate System EPSG: 26391 is Nigeria's SVY21 Projected Coordinate System
+
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "Converting Projection"
+nga_sf <- st_transform(nga,crs = 26391)
+```
+
+st_transform() of sf package is used to reproject nga from one coordinate system(WGS 84) to another coordinate system(ESPG) mathemetically.
+
+#### 5.5 Data Wrangling
+
+Before finalising the data, we have to perform some data cleaning
+
+#### **5.5.1 Checking for duplicate values**
+
+Thanks to our classmate, who have identified the right location for duplicate values with the help of google map data. [Reference link](https://jordan-isss624-geospatial.netlify.app/posts/geo/geospatial_exercise/#visualising-of-distribution-using-ggplot)
+
+duplicated() function returns a logical vector where TRUE specifies which elements of a vector or data frame are duplicates.
+
+filter() function filters those duplicates and lets check what are the duplicated shape Names
+
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "Checking duplicates"
+duplicated_area <- nga_sf %>% 
+  mutate(dup_shapeName = duplicated(shapeName)) %>% 
+  filter(dup_shapeName)
+duplicated_area$shapeName
+```
+
+The below chunk assigns the right shape names corresponding to index values
+
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "Assigning right shape names"
+
+nga_sf$shapeName[c(94,95,304,305,355,356,519,546,547,693,694)] <- 
+  c("Bassa (Kogi)","Bassa (Plateau)",                                                  "Ifelodun (Kwara)","Ifelodun (Osun)",                                              "Irepodun (Kwara)","Irepodun (Osun)",                                              "Nassarawa","Obi (Benue)","Obi(Nasarawa)",                                         "Surulere (Lagos)","Surulere (Oyo)")
+```
+
+Now let's run the same code again and check if there are any duplicates.
+
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "Rechecking duplicate values"
+duplicated_area <- nga_sf %>% 
+  mutate(dup_shapeName = duplicated(shapeName)) %>% 
+  filter(dup_shapeName)
+duplicated_area$shapeName
+```
+
+The output is zero which means there are no duplicate values now.
+
+#### **5.5.2 Combining geospatial and aspatial data**
+
+Let us now use a geoprocessing function (or commonly know as GIS analysis) called **point-in-polygon overlay** to transfer the attribute information in *nga* sf data frame into *wp_sf* data frame using [*st_join()*](https://www.rdocumentation.org/packages/sf/versions/0.5-5/topics/st_join)function.
+
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "combining data"
+wp_sf <- st_join(wp_nga_sf, nga_sf)
+```
+
+#### **5.5.3 Measures used for regionalisation**
+
+Based on the [WPdx standard](https://www.opendatanetwork.com/dataset/data.waterpointdata.org/eqje-vguj), following measures are chosen,
+
+| Measure                                    | col_id            | Description                                                                                                                              |
+|-----------------|-----------------|--------------------------------------|
+| Total number of functional water points    | #status_clean     | No. of functional waterpoints are derived from this categorised column                                                                   |
+| Total number of nonfunctional water points | #status_clean     | No. of non- functional waterpoints are derived from this categorised column                                                              |
+| Percentage of functional water points      | #status_clean     | Percentage of functional waterpoints are derived from the already derived columns                                                        |
+| Percentage of non-functional water points  | #status_clean     | Percentage of non-functional waterpoints are derived from the already derived columns                                                    |
+| Percentage of main water point technology  | #water_tech_clean | Describe the system being used to transport the water from the source to the point of collection (e.g. Handpump)                         |
+| Percentage of usage capacity               | usage_cap         | Recommended maximum users per water point. For eg. 250 people per tap \[tapstand, kiosk, rainwater catchment\] 500 people per hand pump. |
+| Percentage of rural water points           | is_urban          | Is in an urban area as defined by EU Global Human Settlement Database TRUE/FALSE - urban/rural                                           |
+| Percentage of crucial waterpoints          | crucialness_score | crucialness score shows how important the water point would be if it were to be rehabilitated.                                           |
+| Percentage of stale waterpoints            | staleness_score   | The staleness score represents the depreciation of the point's relevance. Varies between 0 and 100. Higher the value more the staleness. |
+
+: Table 2: Clustering Attributes
+
+#### 5.5.4 Renaming the column names
+
+Let us rename some of the column names which begins with \# for ease of use by using rename() function
+
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "Renaming columns"
+wp_sf <-wp_sf %>% 
+  rename ("water_tech" = "#water_tech_clean") %>%
+  rename ("status_clean" = "#status_clean") %>%
+  rename ("status_id" = "#status_id")
+```
+
+#### 5.5.5 Replacing NA values
+
+Now we are replacing the NA values in the status_clean column by *Unknown*
+
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "Replacing NA"
+wp_nga <- wp_sf  %>%
+  mutate(status_cle = replace_na(status_clean, "Unknown"))
+```
+
+#### 5.5.5 Recoding the values
+
+There are water technology values mentioned along with the manufacturer like India Mark III, Afridev. So lets recode all those manufacturers into one class as Hand Pump using *recode()* function
+
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "Recoding handpumps"
+wp_nga <-wp_nga %>% 
+mutate(wpt_tech=recode(water_tech, 
+                     'Hand Pump - Rope Pump'='Hand Pump',
+                     'Hand Pump - India Mark III'='Hand Pump',
+                     'Hand Pump - Afridev'='Hand Pump',
+                     'Hand Pump'='Hand Pump',
+                     'Hand Pump - India Mark II'='Hand Pump',
+                     'Hand Pump - Mono'= 'Hand Pump'))
+```
+
+#### 5.5.6 Extracting Funtional, Non-Functional and Unknown water points
+
+As our objective is to focus on waterpoints, let us extract the three types and save it as a dataframe for further analysis
+
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "Extracting waterpoints"
+wpt_functional <- wp_nga %>%
+  filter(status_cle %in%
+           c("Functional", 
+             "Functional but not in use",
+             "Functional but needs repair"))
+
+wpt_nonfunctional <- wp_nga %>%
+  filter(status_cle %in%
+           c("Abandoned/Decommissioned", 
+             "Abandoned",
+             "Non-Functional",
+             "Non functional due to dry season",
+             "Non-Functional due to dry season"))
+
+wpt_unknown <- wp_nga %>%
+  filter(status_cle == "Unknown")
+
+handpump <- wp_nga %>%
+  filter(wpt_tech == "Hand Pump")
+
+usecap_lessthan1000 <- wp_nga %>%
+  filter(usage_capacity < 1000)
+
+usecap_greatthan1000 <- wp_nga %>%
+  filter(usage_capacity >= 1000)
+
+wpt_rural <- wp_nga %>%
+  filter(is_urban == FALSE)
+
+crucial_score <- wp_nga %>%
+  filter(crucialness_score >= 0.5)
+
+stale_score <- wp_nga %>%
+  filter(staleness_score >= 50)
+
+```
+
+#### 5.5.7 Computing absolute numbers
+
+We have to perform 2 steps to calculate the absolue numbers of waterpoint attributes in each division.
+
+1.  Let us identify no. of waterpoints located inside each division by using [st_intersects()](https://r-spatial.github.io/sf/reference/geos_binary_pred.html).
+
+2.  Next, let us calculate numbers of pre-schools that fall inside each division by using [*length()*](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/length) function.
+
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "Computing numbers"
+nga_wp <- nga_sf %>% 
+  mutate(total_wpt = lengths(
+    st_intersects(nga_sf, wp_nga))) %>%
+  mutate(wpt_functional = lengths(
+    st_intersects(nga_sf, wpt_functional))) %>%
+  mutate(wpt_nonfunctional = lengths(
+    st_intersects(nga_sf, wpt_nonfunctional))) %>%
+  mutate(wpt_unknown = lengths(
+    st_intersects(nga_sf, wpt_unknown)))%>%
+  mutate(handpump = lengths(
+    st_intersects(nga_sf, handpump)))%>%
+  mutate(cap_lessthan1000 = lengths(
+    st_intersects(nga_sf, usecap_lessthan1000)))%>%
+  mutate(cap_greatthan1000 = lengths(
+    st_intersects(nga_sf, usecap_greatthan1000)))%>%
+  mutate(wpt_rural = lengths(
+    st_intersects(nga_sf, wpt_rural)))%>%
+  mutate(wpt_crucial = lengths(
+    st_intersects(nga_sf, crucial_score)))%>%
+  mutate(wpt_stale = lengths(
+    st_intersects(nga_sf, stale_score)))
+```
+
+#### 5.5.8 Computing Proportion
+
+Now, let us calculate what is the overall proportion with respect to the total no. of waterpoints
+
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "Computing proportion"
+nga_wp_clus <- nga_wp %>%
+  mutate(pct_functional = wpt_functional/total_wpt) %>%
+  mutate(pct_nonfunctional = wpt_nonfunctional/total_wpt) %>%
+  mutate(pct_handpump = handpump/total_wpt) %>%
+  mutate(pct_capless1000 = cap_lessthan1000/total_wpt) %>%
+  mutate(pct_capmore1000 = cap_greatthan1000/total_wpt) %>%
+  mutate(pct_rural = wpt_rural/total_wpt) %>%
+  mutate(pct_crucial = wpt_crucial/total_wpt) %>%
+  mutate(pct_stale = wpt_stale/total_wpt) 
+```
+
+#### 5.5.9 Saving the final rds file
+
+In order to manage the storage data efficiently, we are saving the final data frame in rds format.
+
+```{r, eval=FALSE}
+#| code-fold: true
+#| code-summary: "Saving files"
+write_rds(nga_wp_clus, "data2/nga_wp_clus.rds")
+write_rds(wpt_functional, "data2/wpt_functional.rds")
+write_rds(wpt_nonfunctional, "data2/wpt_nonfunctional.rds")
+write_rds(wp_nga, "data2/wp_nga.rds")
+```
+
+#### 5.6 Exploratory Data Analysis
+
+Before performing spatial analysis, let us first do some preliminary data analysis to understand the data better in terms of water points.
+
+#### 5.6.1 What is the proportion of functional and non-functional water points?
+
+Before visualising, its important for us to prepare the data. Based on [WPDx Data Standard](https://www.waterpointdata.org/wp-content/uploads/2021/04/WPDx_Data_Standard.pdf), the variable '#status_id' refers to *Presence of Water when Assessed.* Binary response, i.e. Yes/No are recoded into Functional / Not-Functional.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Preparing the data"
+
+wp_nga <- read_rds("data2/wp_nga.rds")
+
+ngawater_sf<-wp_nga %>%
+  mutate(status_id=
+                case_when(status_id=="Yes"~"Functional",
+                          status_id=="No"~"Non-Functional",
+                          status_id== "Unknown"~"unknown"))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Proportion graph"
+ggplot(data= ngawater_sf, 
+       aes(x= status_id)) +
+       geom_bar(fill= '#CD5C5C') +
+       #ylim(0, 150) +
+       geom_text(stat = 'count',
+           aes(label= paste0(stat(count), ', ', 
+                             round(stat(count)/sum(stat(count))*100, 
+                             1), '%')), vjust= -0.5, size= 2.5) +
+       labs(y= 'No. of \nwater points',
+            x= 'Water Points',
+            title = "Distribution of water points") +
+       theme(axis.title.y= element_text(angle=0), 
+             axis.ticks.x= element_blank(),
+             panel.background= element_blank(),
+             axis.line= element_line(color= 'grey'),
+             axis.title.y.left = element_text(vjust = 0.5),
+             plot.title = element_text(hjust=0.5))
+```
+
+**Insights**:
+
+Nigeria consists of almost 55% of functional, 34% of non-functional and 11% of unknown waterpoints.
+
+#### 5.6.2 What is the district wise proportion of water points?
+
+To find out the solution for this question, first let's prepare the data accordingly:
+
+1.  Create separate dataframe for each plot
+2.  Arrange it in descending order by the count values using *arrange()* function
+3.  Select top 10 divisions using *slice_head()* function
+
+```{r}
+#| code-fold: true
+#| code-summary: "Preparing data"
+
+nga_wp_clus <- read_rds("data2/nga_wp_clus.rds")
+
+top10_crucial <- nga_wp_clus %>%
+  st_set_geometry(NULL) %>%
+  arrange(desc(wpt_crucial)) %>%
+  slice_head(n=10)
+
+top10_rural <- nga_wp_clus %>%
+  st_set_geometry(NULL) %>%
+  arrange(desc(wpt_rural)) %>%
+  slice_head(n=10)
+
+top10_stale <- nga_wp_clus %>%
+  st_set_geometry(NULL) %>%
+  arrange(desc(wpt_stale)) %>%
+  slice_head(n=10)
+
+top10_handpump <- nga_wp_clus %>%
+  st_set_geometry(NULL) %>%
+  arrange(desc(handpump)) %>%
+  slice_head(n=10)
+
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Top 10 crucial"
+tp1 <- ggplot(data = top10_crucial,
+       aes(y = reorder(shapeName,wpt_crucial),
+           x= wpt_crucial)) + 
+  geom_bar(stat = "identity",
+           fill = "coral")+
+  labs(x='No. of crucial water points',
+       y=" ",
+       title="Top 10 divisions with crucial waterpoints") +
+  geom_text(stat='identity', aes(label=paste0(wpt_crucial)),hjust=-0.5)+
+  theme(axis.title.y=element_text(angle=0),
+                                  
+        axis.ticks.x=element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(color='grey'),
+        plot.title = element_text(hjust = 0.5,
+                                  size = 20),
+        axis.title.y.left = element_text(vjust = 0.5), 
+        axis.text = element_text(face="bold",
+                                  size=15))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Top 10 rural"
+tp2 <- ggplot(data = top10_rural,
+       aes(y = reorder(shapeName,wpt_rural),
+           x= wpt_rural)) + 
+  geom_bar(stat = "identity",
+           fill = "hotpink")+
+  labs(x='No. of rural water points',
+       y=" ",
+       title="Top 10 divisions with rural waterpoints",) +
+  geom_text(stat='identity', aes(label=paste0(wpt_rural)),hjust=-0.5)+
+  theme(axis.title.y=element_text(angle=0),
+        axis.ticks.x=element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(color='grey'),
+        plot.title = element_text(hjust = 0.5,
+                                  size = 20),
+        axis.title.y.left = element_text(vjust = 0.5), 
+        axis.text = element_text(face="bold",
+                                 size=15) )
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Top 10 stale"
+tp3 <- ggplot(data = top10_stale,
+       aes(y = reorder(shapeName,wpt_stale),
+           x= wpt_stale)) + 
+  geom_bar(stat = "identity",
+           fill = "red")+
+  labs(x='No. of stale water points',
+       y=" ",
+       title="Top 10 divisions with stale waterpoints",) +
+  geom_text(stat='identity', aes(label=paste0(wpt_stale)),hjust=-0.5)+
+  theme(axis.title.y=element_text(angle=0),
+        #axis.title.y=element_blank(),
+        axis.ticks.x=element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(color='grey'),
+        plot.title = element_text(hjust = 0.5,
+                                  size = 20),
+        axis.title.y.left = element_text(vjust = 0.5), 
+        axis.text = element_text(face="bold",
+                                 size=15))
+```
+
+```{r}
+#| code-fold: true
+#| code-summary: "Top 10 - handpumps"
+tp4 <- ggplot(data = top10_crucial,
+       aes(y = reorder(shapeName,handpump),
+           x= handpump)) + 
+  geom_bar(stat = "identity",
+           fill = "yellow")+
+  labs(x='No. of handpump water points',
+       y=" ",
+       title="Top 10 divisions with handpump waterpoints",) +
+  geom_text(stat='identity', aes(label=paste0(handpump)),hjust=-0.5)+
+  theme(axis.title.y=element_text(angle=0), 
+        axis.ticks.x=element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(color='grey'),
+        plot.title = element_text(hjust = 0.5,
+                                  size = 20),
+        axis.title.y.left = element_text(vjust = 0.5), 
+        axis.text = element_text(face="bold",
+                                 size=15))
+        
+```
+
+[ggarrange()](https://rpkgs.datanovia.com/ggpubr/reference/ggarrange.html) function of [**ggpubr**](https://rpkgs.datanovia.com/ggpubr/) package is used to group these bargraphs together.
+
+```{r, fig.width=25, fig.height=15}
+ggarrange(tp1, tp2, tp3, tp4,
+          ncol=2,
+          nrow=2)
+
+```
+
+**Insights**:
+
+We can infer that divisions like Bali, Gashaka, Toungo are matter of concern as they have most no. of crucial water points i.e.the crucialness score shows how important the water point would be if it were to be rehabilitated, most of which are rural and also these divisions have highest no. of waterpumps.
+
+#### 5.6.3 What is the distribution of waterpoint proportion attributes?
+
+The code chunks below are used to create multiple histograms to reveal the overall distribution of the selected variables in *nga_wp_clus.* They consist of two main parts.
+
+1.  Create the individual histograms using geom_histogram() and geom_density() functions
+
+2.  Group these histograms together by using the [*ggarrange()*](https://rpkgs.datanovia.com/ggpubr/reference/ggarrange.html) function of [**ggpubr**](https://rpkgs.datanovia.com/ggpubr/) package
+
+```{r, fig.height=8, fig.width=15, warning=FALSE}
+#| code-fold: true
+#| code-summary: "Distribution plots"
+
+h1 <- ggplot(data=nga_wp_clus, 
+             aes(x= pct_functional,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h2 <- ggplot(data=nga_wp_clus, 
+             aes(x= pct_nonfunctional,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h3 <- ggplot(data=nga_wp_clus, 
+             aes(x= pct_handpump,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+    geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h4 <- ggplot(data=nga_wp_clus, 
+             aes(x= pct_rural,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h5 <- ggplot(data=nga_wp_clus, 
+             aes(x= pct_capmore1000,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h6 <- ggplot(data=nga_wp_clus, 
+             aes(x= pct_capless1000,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h7 <- ggplot(data=nga_wp_clus, 
+             aes(x= pct_crucial,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h8 <- ggplot(data=nga_wp_clus, 
+             aes(x= pct_stale,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+ggarrange(h1, h2, h3, h4, h5, h6, h7, h8,
+          ncol = 4, 
+          nrow = 2)
+```
+
+We can observe that distribution of rural waterpoints proportion is left skewed and distribution of proportion of staleness waterpoints is right skewed. The distribution is not normal for all except *pct_functional* and *pct_nonfunctional*
+
+#### 5.6.4 How is the handpump proportion spread across the country?
+
+Previously, we have performed preliminary data analysis using statistical charts. Now let us visualise it using maps.
+
+```{r,message=FALSE, warning=FALSE}
+#| code-fold: true
+#| code-summary: "Total waterpoints spread"
+
+cm1 <-  tm_shape(nga_wp_clus)+
+  tm_fill("total_wpt", 
+          style = "quantile", 
+          palette = "Blues",
+          title = "Total \nWaterpoints ratio") +
+  tm_layout(main.title = "Distribution of total no. of waterpoints",
+            main.title.position = "center",
+            main.title.size = 1.5,
+            legend.height = 1, 
+            legend.width = 1,
+            legend.text.size = 1,
+            legend.title.size = 1,
+            main.title.fontface = "bold",
+            frame = TRUE) +
+  tmap_mode("plot")+
+  tm_borders(alpha = 0.5) +
+  tm_compass(type="8star",
+             position=c("right", "top"))
+```
+
+```{r,message=FALSE, warning=FALSE}
+#| code-fold: true
+#| code-summary: "Handpump spread"
+
+cm2 <-  tm_shape(nga_wp_clus)+
+  tm_fill("handpump", 
+          style = "quantile", 
+          palette = "Blues",
+          title = "Handpump \nWaterpoints ratio") +
+  tm_layout(main.title = "Distribution of handpumps",
+            main.title.position = "center",
+            main.title.size = 1.5,
+            legend.height = 1, 
+            legend.width = 1,
+            legend.text.size = 1,
+            legend.title.size = 1,
+            main.title.fontface = "bold",
+            frame = TRUE) +
+  tmap_mode("plot")+
+  tm_borders(alpha = 0.5) +
+  tm_compass(type="8star",
+             position=c("right", "top"))
+```
+
+```{r,message=FALSE, warning=FALSE}
+#| code-fold: true
+#| code-summary: "Handpump proportion spread"
+
+cm3 <-  tm_shape(nga_wp_clus)+
+  tm_fill("pct_handpump", 
+          style = "quantile", 
+          palette = "Blues",
+          title = "Handpump \nproportion ratio") +
+  tm_layout(main.title = "Distribution of handpump proportion",
+            main.title.position = "center",
+            main.title.size = 1.5,
+            legend.height = 1, 
+            legend.width = 1,
+            legend.text.size = 1,
+            legend.title.size = 1,
+            main.title.fontface = "bold",
+            frame = TRUE) +
+  tmap_mode("plot")+
+  tm_borders(alpha = 0.5) +
+  tm_compass(type="8star",
+             position=c("right", "top"))
+```
+
+Individual maps are combined using *tmap_arrange()* function
+
+```{r, fig.width=20, fig.height=8}
+
+tmap_arrange(cm1, cm2, cm3, ncol=3)
+```
+
+**Insights:**
+
+It is evident that the second map is almost similar to first map because if we take absolute numbers into consideration, no. of handpumps will be obviously higher in the places where there are more no. of waterpoints. For example, central and eastern Nigeria has most no. of handpumps .Whereas, the third map shows handpumps proportion in central region is comparatively lower than western region.
+
+#### 5.7 Clustering Analysis - Preparation
+
+The below figure shows a basic framework for cluster analysis and the steps involved in the process.
+
+![Fig 1- Steps involved in cluster analysis](images/clustering.PNG){alt="Fig 1- Steps involved in cluster analysis"}
+
+#### Are there any highly correlated cluster variables?
+
+Let us ensure that the cluster variables are not highly correlated.
+
+The code chunk below helps us to visualise and analyse the correlation of the input variables by using corrplot.mixed() function of [**corrplot**](https://cran.r-project.org/web/packages/corrplot/vignettes/corrplot-intro.html) package.
+
+```{r}
+#| code-fold: true
+#| code-summary: "clustering variables"
+
+derived <- nga_wp_clus %>%
+  select(8,9,17:24) %>%
+  st_drop_geometry() %>%
+  replace(is.na(.), 0)
+```
+
+```{r, fig.width=11}
+#| code-fold: true
+#| code-summary: "Computing correlation"
+
+cluster_vars.cor = cor(derived[,1:10])
+corrplot.mixed(cluster_vars.cor,
+         lower = "ellipse", 
+               upper = "number",
+               tl.pos = "lt",
+               diag = "l",
+               tl.col = "black")
+
+```
+
+**Interpretation**:
+
+In general, if correlation coefficient value is greater than 0.85 then the variables are said to be highly correlated. In that case, here, pct_handpump and pct_capless1000 is highly correlated as the magnitude of corelation coefficient is 0.94. Hence, let us exclude the cluster variable pct_capless1000.
+
+**Extracting cluster variables**
+
+As per the flowchart, we have so far completed first step. Let us decide on the clustering variables.
+
+The below code chunk is to extract and save the clustering variables in a separate dataframe.
+
+1.  Drop geometry from the dataframe using *st_set_geometry()* function
+
+2.  Choose the desired columns by using *select()* clause
+
+3.  Replace the NA values by 0 using *replace(is.na())* function
+
+4.  Prepare a tabular format using kable() function
+
+```{r}
+#| code-fold: true
+#| code-summary: "Extracting clustering variables"
+
+cluster_vars <- nga_wp_clus %>%
+  st_set_geometry(NULL) %>%
+  select(1,7,8,16:18,20:23) %>%
+  replace(is.na(.), 0)
+kable(head(cluster_vars,5))
+```
+
+Next, let us change the rows by division name instead of row number by using the code chunk below
+
+```{r}
+#| code-fold: true
+#| code-summary: "Division as rows"
+
+row.names(cluster_vars) <- cluster_vars$shapeName 
+
+nga_derived <- select(cluster_vars, c(2:10)) 
+
+#write_rds(nga_derived, "data2/nga_derived.rds")
+               
+kable(head(nga_derived,5))
+```
+
+**Examining the distribution**
+
+Cluster variables with large variances tend to have a greater effect on the resulting clusters than those with small variances. Hence, before performing cluster analysis we should **examine the distribution of the cluster variables** using appropriate exploratory data analysis techniques, such as histogram. 
+
+```{r, fig.height=8, fig.width=15, warning=FALSE}
+#| code-fold: true
+#| code-summary: "Univariate distribution"
+
+#nga_derived <- read_rds("data2/nga_derived.rds")
+
+rh1 <- ggplot(data=nga_derived, 
+             aes(x= wpt_functional,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h2 <- ggplot(data=nga_derived, 
+             aes(x= wpt_nonfunctional,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h3 <- ggplot(data=nga_derived, 
+             aes(x= pct_functional,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+    geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h4 <- ggplot(data=nga_derived, 
+             aes(x= pct_nonfunctional,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h5 <- ggplot(data=nga_derived, 
+             aes(x= pct_handpump,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h6 <- ggplot(data=nga_derived, 
+             aes(x= pct_capmore1000,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h7 <- ggplot(data=nga_derived, 
+             aes(x= pct_rural,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h8 <- ggplot(data=nga_derived, 
+             aes(x= pct_crucial,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h9 <- ggplot(data=nga_derived, 
+             aes(x= pct_stale,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+ggarrange(rh1, h2, h3, h4, h5, h6, h7, h8, h9,
+          ncol = 3, 
+          nrow = 3)
+```
+
+The univariate distribution plot shows that there are majority of zero. Let us exclude zero and view how the plot turns out to be
+
+```{r, fig.height=8, fig.width=15, warning=FALSE}
+#| code-fold: true
+#| code-summary: "Univariate distribution"
+
+nga_derived_excludeZero <- filter_if(nga_derived, is.numeric, all_vars((.) != 0))
+
+h1 <- ggplot(data=nga_derived_excludeZero,
+             aes(x= wpt_functional,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h2 <- ggplot(data=nga_derived_excludeZero, 
+             aes(x= wpt_nonfunctional,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h3 <- ggplot(data=nga_derived_excludeZero, 
+             aes(x= pct_functional,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+    geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h4 <- ggplot(data=nga_derived_excludeZero, 
+             aes(x= pct_nonfunctional,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h5 <- ggplot(data=nga_derived_excludeZero, 
+             aes(x= pct_handpump,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h6 <- ggplot(data=nga_derived_excludeZero, 
+             aes(x= pct_capmore1000,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h7 <- ggplot(data=nga_derived_excludeZero, 
+             aes(x= pct_rural,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h8 <- ggplot(data=nga_derived_excludeZero, 
+             aes(x= pct_crucial,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+h9 <- ggplot(data=nga_derived_excludeZero, 
+             aes(x= pct_stale,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+ggarrange(h1, h2, h3, h4, h5, h6, h7, h8, h9,
+          ncol = 3, 
+          nrow = 3)
+
+```
+
+Distribution of attributes like pct_functional, pct_nonfunctional are normal whereas wpt_functional, wpt_non_functional are right skewed, pct_rural distribution is left skewed. Let us perform transformation to convert it into normal distribution
+
+**Log Transformation**
+
+```{r, fig.height=8, fig.width=15, warning=FALSE}
+#| code-fold: true
+#| code-summary: "Univariate distribution"
+
+
+lognga_derived <- nga_derived_excludeZero
+lognga_derived[,1:9] <- log(lognga_derived[,1:9]+1)
+
+lh1 <- ggplot(data=lognga_derived,
+             aes(x= wpt_functional,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+lh2 <- ggplot(data=lognga_derived, 
+             aes(x= wpt_nonfunctional,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+lh3 <- ggplot(data=lognga_derived, 
+             aes(x= pct_functional,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+    geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+lh4 <- ggplot(data=lognga_derived, 
+             aes(x= pct_nonfunctional,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+lh5 <- ggplot(data=lognga_derived, 
+             aes(x= pct_handpump,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+lh6 <- ggplot(data=lognga_derived, 
+             aes(x= pct_capmore1000,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+lh7 <- ggplot(data=lognga_derived, 
+             aes(x= pct_rural,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+lh8 <- ggplot(data=lognga_derived, 
+             aes(x= pct_crucial,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+lh9 <- ggplot(data=lognga_derived, 
+             aes(x= pct_stale,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+
+ggarrange(lh1, lh2, lh3, lh4,lh5, lh6, lh7,lh8, lh9,
+          ncol = 3, 
+          nrow = 3)
+
+
+```
+
+After performing log transformation, now the distribution is normal. For eg, let us compare the distribution of wpt_functional before and after transformation
+
+```{r,fig.height=5, fig.width=10}
+#| code-fold: true
+#| code-summary: "Comaprison"
+
+h1 <- h1 + labs(title= "Raw values")
+lh1 <- lh1 + labs(title = "Log transformation")
+
+ggarrange(h1, lh1, ncol=2)
+```
+
+The skewness is removed and the distribution has become normal
+
+**Data Standardisation**
+
+As our clustering variables include absolute numbers and percentage values, it is obvious that their values range are different. In order to avoid the cluster analysis result is baised to clustering variables with large values, it is useful to standardise the input variables before performing cluster analysis.
+
+There are 3 major standardisation techniques
+
+![Standardisation techniques](images/std.PNG) Here, we are performing Z-score standardisation as it can handle outliers well and it is applicable to variables which are from normal distribution
+
+```{r}
+#| code-fold: true
+#| code-summary: "Z-score"
+nga_derived.z <- scale(lognga_derived)
+
+zh1 <- ggplot(data=as.data.frame(nga_derived.z),
+             aes(x= wpt_functional,
+                 y= ..density..)) +
+  geom_histogram(bins=20, 
+                 color="black", 
+                 fill="coral")+
+  geom_density(color="black",
+               alpha = 0.5)+
+  theme(panel.background= element_blank())
+```
+
+```{r,fig.width=15, fig.height=5}
+#| code-fold: true
+#| code-summary: "Comparison"
+
+rh1 <- rh1 + labs(title= "Raw Data")
+h1 <-  h1 + labs(title= "Excluding Zeroes")
+lh1 <- lh1 + labs(title = "Log transformation")
+zh1 <- zh1 + labs(title = "Z-score standardisation")
+
+ggarrange(rh1,h1, lh1,zh1, ncol=4)
+
+```
+
+Hence, we have transformed the variables so as to have normal distribution and performed z-score standardisation to maintain same ranges among all variables.
+
+**Computing Proximity Matrix**
+
+A proximity matrix is **a square matrix (two-dimensional array) containing the distances, taken pairwise between the elements of a matrix**. Broadly defined; a proximity matrix measures the similarity or dissimilarity between the pairs of matrix.
+
+Major types are euclidean, maximum, manhattan, canberra, binary and minkowski.
+
+The code chunk below is used to compute the proximity matrix using dist() function and *euclidean* method.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Proximity matrix"
+
+proxmat <- dist(nga_derived, method = 'euclidean')
+```
+
+#### 5.8 Hierarchical Clustering
+
+**Determining optimal algorithm**
+
+While performing hierarchical clustering we have to identify the strongest clustering structures.
+
+The code chunk below will be used to compute the agglomerative coefficients of all hierarchical clustering algorithms.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Optimal algorithm"
+
+m <- c( "average", "single", "complete", "ward")
+names(m) <- c( "average", "single", "complete", "ward")
+
+ac <- function(x) {
+  agnes(nga_derived, method = x)$ac
+}
+
+map_dbl(m, ac)
+```
+
+We can see that Ward's method provides the strongest clustering structure among the four methods assessed. Hence, let us use the same in the subsequent analysis.
+
+**Determining optimal clusters**
+
+There are [three](https://statweb.stanford.edu/~gwalther/gap) commonly used methods to determine the optimal clusters, they are:
+
+-   [Elbow Method](https://en.wikipedia.org/wiki/Elbow_method_(clustering))
+
+-   [Average Silhouette Method](https://www.sciencedirect.com/science/article/pii/0377042787901257?via%3Dihub)
+
+-   [Gap Statistic Method](http://www.web.stanford.edu/~hastie/Papers/gap.pdf)
+
+Let us use Elbow Method to determine optimal no. of clusters.
+
+fviz_nbclust() of factoextra package - to specify the no. of clusters to be generated
+
+method - wss - within sum of squares
+
+```{r}
+#| code-fold: true
+#| code-summary: "Elbow method"
+
+fviz_nbclust(nga_derived.z, 
+             hcut, 
+             method = "wss")
+
+```
+
+Min no. of clusters required to perform clustering analysis is 3. The plot reveals that optimal no. of clusters is 4 as the slope reduces gradually.
+
+**Creating dendrogram**
+
+In the dendrogram displayed below, each leaf corresponds to one observation. As we move up the tree, observations that are similar to each other are combined into branches, which are themselves fused at a higher height. The code chunk below performs hierarchical cluster analysis using ward.D method. The hierarchical clustering output is stored in an object of class **hclust** which describes the tree produced by the clustering process. [*rect.hclust()*](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/rect.hclust.html) - to draw the dendrogram with a border around the selected clusters
+
+*border* - to specify the border colors for the rectangles
+
+```{r, fig.width=15, fig.height=10}
+#| code-fold: true
+#| code-summary: "Dendrogram"
+
+set.seed(3456)
+hclust_ward <- hclust(proxmat, method = 'ward.D')
+plot(hclust_ward, cex = 0.9)
+rect.hclust(hclust_ward, 
+            k = 4, 
+            border = 2:5)
+```
+
+**Visual interpretation of clusters - Spatial Map**
+
+We are retaining 4 clusters for the analysis.The code chunk performs the following steps
+
+1.  Derive a 6-cluster model using [*cutree()*](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/cutree.html) function
+
+2.  Convert the *groups* list object into a matrix using *as.matrix() function*
+
+3.  Append *groups* matrix onto nga_wp_clus to produce an output simple feature object called *hierarCluster* using *cbind()* function
+
+4.  Rename *as.matrix.groups* as Hierar cluster using rename() function
+
+```{r}
+#| code-fold: true
+#| code-summary: "Preparing Data"
+
+groups <- as.factor(cutree(hclust_ward, k=4))
+hierarCluster <- cbind(nga_wp_clus, as.matrix(groups)) %>%
+  rename(`Hierar_cluster` = `as.matrix.groups.`)
+```
+
+```{r, fig.height=10, fig.width=15,message=FALSE, warning=FALSE}
+#| code-fold: true
+#| code-summary: "Mapping Hierarchical Cluster"
+
+cmap1 <- tm_shape (hierarCluster) +
+          tm_polygons("Hierar_cluster",
+          title = "Hierarchical Cluster") +
+          tm_layout(main.title = "Conventional Hierarchical clusters",
+                    main.title.position = "center",
+                    main.title.size = 1.5,
+                    legend.height = 1.5, 
+                    legend.width = 1.5,
+                    legend.text.size = 1.5,
+                    legend.title.size = 1.5,
+                    main.title.fontface = "bold",
+                    frame = TRUE) +
+        tmap_mode("plot")+
+        tm_borders(alpha = 0.5) +
+        tm_compass(type="8star",
+                  position=c("right", "top"))
+cmap1
+```
+
+Cluster 1 is predominantly located in the north and western region of Nigeria. Cluster 3 is also spread. It is separated by cluster 2. It leads to difficulty in defining the high-risk cluster and the divisions that belong to this cluster. Cluster 2 occupies the eastern region completely. Although we can see how the clusters are spread across the country, its important for us to understand what constitutes each cluster.
+
+**Visual interpretation of clusters - Parallel Plot**
+
+To reveal the clustering variables by cluster very effectively, let us create parallel coordinate plot using the code chunk below, [`ggparcoord()`](https://ggobi.github.io/ggally/reference/ggparcoord.html) of [**GGally**](https://ggobi.github.io/ggally/) package
+
+```{r, fig.height=10, fig.width=15}
+#| code-fold: true
+#| code-summary: "Hierarchical Cluster - Parallel plot"
+
+p <- ggparcoord(data = hierarCluster,
+           columns = c(7,8,16,17,18,20:23),
+           scale = "std",
+           alphaLines = 0.2,
+           boxplot = TRUE,
+           groupColumn = "Hierar_cluster",
+           title = "Multiple Parallel Coordinates Plots of Hierarchical Cluster") +
+  theme_minimal()+
+  scale_color_manual(values=c( "#69b3a2", "red", "blue", "green") )+
+  facet_grid(~ `Hierar_cluster`) +
+  theme(axis.text.x = element_text(angle = 30,size = 5))+
+  xlab("")
+
+ggplotly(p)
+  
+```
+
+**Interpretation**:
+
+From the above plot, we can infer that the divisions in cluster 1 are majorly urban waterpoints and the staleness of water is very high which is a serious concern. On the other hand, divisions in cluster 4 has higher proportion of functional waterpoints than non-functional waterpoints.
+
+| Cluster                 | Divisions                                                  | Reason                                                                      |
+|------------------|------------------------|------------------------------|
+| Low Risk - Cluster 4    | Bali, Fufore, Ganye, Gashaka, Gombi, Hong                  | Higher proportion of functional waterpoints than non-functional waterpoints |
+| Medium Risk - Cluster 2 | Shomgom,Demsa,Shelleng,Billiri, Kwami, Yola South, Lamurde | Recommended max. users per waterpoint is high                               |
+| High Risk - Cluster 1   | Bursari, Idah, Jos North, Etsako East, Ijebu East          | High water staleness                                                        |
+
+: Table 3: Clustering divisions
+
+#### 5.9 Spatially Constrained Clustering
+
+In this section, let us perform the following spatially constrained clustering using
+
+-   Spatial 'K'luster Analysis by Tree Edge Removal (SKATER) method
+
+-   Spatially Constrained Hierarchical Clustering using ClustGeo method
+
+-   Spatially constraine clustering using REDCAP method
+
+#### 5.9.1 SKATER method
+
+The Spatial C(K)luster Analysis by Tree Edge Removal(SKATER) algorithm introduced by Assuncao et al. (2006) is based on the optimal pruning of a minimum spanning tree that reflects the contiguity structure among the observations. It provides an optimized algorithm to prune to tree into several clusters that their values of selected variables are as similar as possible.
+
+We have to remove the region which has no neighbours while creating a Queen contiguity weight
+
+```{r}
+#| code-fold: true
+#| code-summary: "Computing weights"
+
+nga_wp_clusf = nga_wp_clus %>%
+                       filter(shapeName != "Bakassi")
+
+queen_w <- queen_weights(nga_wp_clusf)
+```
+
+The code chunk below computes SKATER clusters using skater() function of `rgeoda` package
+
+```{r, warning=FALSE, message=FALSE}
+#| code-fold: true
+#| code-summary: "Computing SKATER clusters"
+
+SKATER_clusters <- rgeoda::skater(k = 4, 
+                          w = queen_w, 
+                          df = nga_derived )
+
+```
+
+The code chunk below form the join in three steps:
+
+-   the *SKATER_clusters* list object will be converted into a matrix;
+
+-   *cbind()* is used to append *groups* matrix onto *nga_wp_clusf* to produce an output simple feature object called *skaterCluster*
+
+-   *rename* of **dplyr** package is used to rename *as.matrix.groups* field as SKATER_Cluster
+
+```{r}
+#| code-fold: true
+#| code-summary: "Matrix conversion and renaming"
+
+SKATER_cluster <- as.matrix(SKATER_clusters$Clusters)
+skaterCluster <- cbind(nga_wp_clusf, as.factor(SKATER_cluster)) %>%
+  rename(`SKATER_Cluster`=`as.factor.SKATER_cluster.`)
+
+```
+
+Let us map the clusters and view its spatial distribution using tmap options
+
+```{r, fig.height=10, fig.width=20, message=FALSE, warning=FALSE}
+#| code-fold: true
+#| code-summary: "Mapping SKATER cluster"
+
+cmap2 <- tm_shape (skaterCluster) +
+          tm_polygons("SKATER_Cluster",
+          title = "SKATER Cluster") +
+          tm_layout(main.title = "Spatially constrained - SKATER",
+                    main.title.position = "center",
+                    main.title.size = 1.5,
+                    legend.height = 1.5, 
+                    legend.width = 1.5,
+                    legend.text.size = 1.5,
+                    legend.title.size = 1.5,
+                    main.title.fontface = "bold",
+                    frame = TRUE) +
+        tmap_mode("plot")+
+        tm_borders(alpha = 0.5) +
+        tm_compass(type="8star",
+                  position=c("right", "top"))
+cmap2
+```
+
+**Visual interpretation of clusters - Parallel Plot**
+
+To reveal the clustering variables by cluster very effectively, let us create parallel coordinate plot using the code chunk below, [`ggparcoord()`](https://ggobi.github.io/ggally/reference/ggparcoord.html) of [**GGally**](https://ggobi.github.io/ggally/) package
+
+```{r, fig.height=10, fig.width=20}
+#| code-fold: true
+#| code-summary: "SKATER - Parallel plot"
+p <- ggparcoord(data = skaterCluster,
+           columns = c(7,8,16,17,18,20:23),
+           scale = "std",
+           alphaLines = 0.2,
+           boxplot = TRUE,
+           groupColumn = "SKATER_Cluster",
+           title = "Multiple Parallel Coordinates Plots of SKATER Cluster") +
+  theme_minimal()+
+  scale_color_manual(values=c( "#69b3a2", "red", "blue", "green") )+
+  facet_grid(~ `SKATER_Cluster`) +
+  theme(axis.text.x = element_text(angle = 30, size = 5))+
+  xlab("")
+
+ggplotly(p)
+  
+
+```
+
+**Interpretation:**
+
+Proportion of functional waterpoints is greater than non functional waterpoints in both clusters 1 and 2 which is very good sign and also the percentage of waterpoints with high staleness is lesser in numbers in cluster 2 which is again positive. But the same staleness percentage is quite high in cluster 1 which is a matter of concern.
+
+#### 5.9.2 Non spatially constrained clustering using ClustGeo method
+
+ClustGeo package provides functionalities to perform spatially constrained cluster analysis. This algorithm uses two dissimilarity matrices D0 and D1 along with a mixing parameter alpha, whereby the value of alpha must be a real number between \[0, 1\]. D0 can be non-Euclidean and the weights of the observations can be non-uniform. It gives the dissimilarities in the **attribute/clustering variable space**. D1, on the other hand, gives the dissimilarities in the **constraint space**. The criterion minimised at each stage is a convex combination of the homogeneity criterion calculated with D0 and the homogeneity criterion calculated with D1.
+
+The idea is then to determine a value of alpha which increases the spatial contiguity without deteriorating too much the quality of the solution based on the variables of interest. This need is supported by a function called `choicealpha()`.
+
+The code chunk below compute the spatially constrained cluster using hclustgeo() function of clustgeopackage and perform the join as mentioned in previous section.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Computing cluster - ClustGeo"
+
+set.seed(3456)
+nongeo_cluster <- hclustgeo(proxmat)
+groups <- as.factor(cutree(nongeo_cluster, k=4))
+geoCluster <- cbind(nga_wp_clus, as.matrix(groups)) %>%
+  rename(`Geo_cluster` = `as.matrix.groups.`)
+```
+
+Let us map the clusters and view its spatial distribution using tmap options
+
+```{r,fig.height=10, fig.width=15, message=FALSE, warning=FALSE}
+#| code-fold: true
+#| code-summary: "Mapping Geo Cluster"
+
+cmap3 <- tm_shape (geoCluster) +
+          tm_polygons("Geo_cluster",
+          title = "Geo Cluster") +
+          tm_layout(main.title = "Non-spatially constraied - GeoCluster",
+                    main.title.position = "center",
+                    main.title.size = 1.5,
+                    legend.height = 1.5, 
+                    legend.width = 1.5,
+                    legend.text.size = 1.5,
+                    legend.title.size = 1.5,
+                    main.title.fontface = "bold",
+                    frame = TRUE) +
+        tmap_mode("plot")+
+        tm_borders(alpha = 0.5) +
+        tm_compass(type="8star",
+                  position=c("right", "top"))
+cmap3
+```
+
+**Visual interpretation of clusters - Parallel Plot**
+
+To reveal the clustering variables by cluster very effectively, let us create parallel coordinate plot using the code chunk below, [`ggparcoord()`](https://ggobi.github.io/ggally/reference/ggparcoord.html) of [**GGally**](https://ggobi.github.io/ggally/) package
+
+```{r, fig.height=10, fig.width=15}
+#| code-fold: true
+#| code-summary: "Non spatially constrained - Parallel plot"
+
+p <- ggparcoord(data = geoCluster,
+           columns = c(7,8,16,17,18,20:23),
+           scale = "std",
+           alphaLines = 0.2,
+           boxplot = TRUE,
+           groupColumn = "Geo_cluster",
+           title = "Multiple Parallel Coordinates Plots of Non spatially constrained geo Cluster") +
+  theme_minimal()+
+  scale_color_manual(values=c( "#69b3a2", "red", "blue", "green") )+
+  facet_grid(~ Geo_cluster) +
+  theme(axis.text.x = element_text(angle = 30, size = 5))+
+  xlab("")
+
+ggplotly(p)
+  
+```
+
+**Interpretation:**
+
+Percentage of functional and non-functional waterpoints is almost the same in both clusters 1 and 2 and whereas proportion of functional points is gretaer than non-functional water points in cluster 4.
+
+#### 5.9.3 Spatially constrained hierarchical clustering using ClustGeo method
+
+Before creating spatially constrained hierarchical clusters, let us perform the following steps
+
+1.  create a spatial distance matrix using [`st_distance()`](https://r-spatial.github.io/sf/reference/geos_measures.html) of sf package
+
+2.  convert the data frame into matrix using `as.dist()`
+
+3.  determine a suitable value for the mixing parameter alpha using `choicealpha()`
+
+```{r}
+#| code-fold: true
+#| code-summary: "Computing cluster - ClustGeo"
+
+dist <- st_distance(nga_wp_clus, nga_wp_clus)
+distmat <- as.dist(dist)
+cr <- choicealpha(D0 = proxmat, 
+                  D1 = distmat, 
+                  range.alpha = seq(0, 1, 0.1),
+                  K=4, 
+                  graph = TRUE)
+```
+
+With reference to the graphs above, alpha = 0.2 will be used as shown in the code chunk below.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Mapping Geo Cluster"
+
+set.seed(3456)
+clustG <- hclustgeo(proxmat, distmat, alpha = 0.2)
+groups <- as.factor(cutree(clustG, k=4))
+spConstrainedCluster <- cbind(nga_wp_clus, as.matrix(groups)) %>%
+  rename(`spconstrained_cluster` = `as.matrix.groups.`)
+```
+
+Let us map the clusters and view its spatial distribution using tmap options
+
+```{r,fig.height=10, fig.width=15, message=FALSE, warning=FALSE}
+#| code-fold: true
+#| code-summary: "Mapping Geo Cluster"
+
+cmap4 <- tm_shape (spConstrainedCluster) +
+          tm_polygons("spconstrained_cluster",
+          title = "spatial constrained cluster") +
+          tm_layout(main.title = "Spatially constraied - GeoCluster",
+                    main.title.position = "center",
+                    main.title.size = 1.5,
+                    legend.height = 1.5, 
+                    legend.width = 1.5,
+                    legend.text.size = 1.5,
+                    legend.title.size = 1.5,
+                    main.title.fontface = "bold",
+                    frame = TRUE) +
+        tmap_mode("plot")+
+        tm_borders(alpha = 0.5) +
+        tm_compass(type="8star",
+                  position=c("right", "top"))
+cmap4
+```
+
+**Visual interpretation of clusters - Parallel Plot**
+
+To reveal the clustering variables by cluster very effectively, let us create parallel coordinate plot using the code chunk below, [`ggparcoord()`](https://ggobi.github.io/ggally/reference/ggparcoord.html) of [**GGally**](https://ggobi.github.io/ggally/) package
+
+```{r, fig.height=10, fig.width=15}
+#| code-fold: true
+#| code-summary: "Spatially constrained - Parallel plot"
+
+
+p <- ggparcoord(data = spConstrainedCluster,
+           columns = c(7,8,16,17,18,20:23),
+           scale = "std",
+           alphaLines = 0.2,
+           boxplot = TRUE,
+           groupColumn = "spconstrained_cluster",
+           title = "Multiple Parallel Coordinates Plots of Spatially constrained hierarchical Cluster") +
+  theme_minimal()+
+  scale_color_manual(values=c( "#69b3a2", "red", "blue", "green") )+
+  facet_grid(~ `spconstrained_cluster`) +
+  theme(axis.text.x = element_text(angle = 30, size = 5))+
+  xlab("")
+
+ggplotly(p)
+  
+```
+
+**Interpretation**:
+
+From the above multiple parallel coordinate plot, we can infer that most of the waterpoints in cluster 2 are located in urban areas and cluster 3 is at high risk as there are quite a lot of crucial waterpoints but the staleness of water is also high which is a serious concern.
+
+#### 5.9.3 Spatially constrained clustering using REDCAP method
+
+REDCAP (Regionalization with dynamically constrained agglomerative clustering and partitioning) is developed by D. Guo (2008). Like SKATER, REDCAP starts from building a spanning tree in 3 different ways (single-linkage, average-linkage, and the complete-linkage). The single-linkage way leads to build a minimum spanning tree. Then, REDCAP provides 2 different ways (first-order and full-order constraining) to prune the tree to find clusters. The first-order approach with a minimum spanning tree is the same as SKATER. In `GeoDa` and `rgeoda`, the following methods are provided:
+
+-   First-order and Single-linkage
+
+-   Full-order and Complete-linkage
+
+-   Full-order and Average-linkage
+
+-   Full-order and Single-linkage
+
+-   Full-order and Wards-linkage
+
+The below code chunk is to compute REDCAP clusters with full order complete linkage method using redcap() of rgeoda package.
+
+```{r}
+#| code-fold: true
+#| code-summary: "Computing RECAP clusters"
+
+redcap_clusters <- redcap(k = 4, 
+                          w = queen_w, 
+                          df = nga_derived, 
+                          method = "fullorder-completelinkage")
+
+```
+
+The code chunk below form the join in three steps:
+
+-   the *redcap_clusters* list object will be converted into a matrix;
+
+-   *cbind()* is used to append *groups* matrix onto *nga_wp_clusf* to produce an output simple feature object called `redcapCluster`and
+
+-   *rename* of **dplyr** package is used to rename *as.matrix.groups* field as Redcap_Cluster
+
+```{r}
+#| code-fold: true
+#| code-summary: "Matrix conversion and Renaming"
+
+redcap_cluster <- as.matrix(redcap_clusters$Clusters)
+redcapCluster <- cbind(nga_wp_clusf, as.factor(redcap_cluster)) %>%
+  rename(`Redcap_Cluster`=`as.factor.redcap_cluster.`)
+
+```
+
+Let us map the clusters and view its spatial distribution using tmap options
+
+```{r, fig.height=10, fig.width=20, message=FALSE, warning=FALSE}
+
+cmap5 <- tm_shape (redcapCluster) +
+          tm_polygons("Redcap_Cluster",
+          title = "Redcap Cluster") +
+          tm_layout(main.title = "Spatially constrained - Redcap",
+                    main.title.position = "center",
+                    main.title.size = 1.5,
+                    legend.height = 1.5, 
+                    legend.width = 1.5,
+                    legend.text.size = 1.5,
+                    legend.title.size = 1.5,
+                    main.title.fontface = "bold",
+                    frame = TRUE) +
+        tmap_mode("plot")+
+        tm_borders(alpha = 0.5) +
+        tm_compass(type="8star",
+                  position=c("right", "top"))
+cmap5
+```
+
+**Visual interpretation of clusters - Parallel Plot**
+
+To reveal the clustering variables by cluster very effectively, let us create parallel coordinate plot using the code chunk below, [`ggparcoord()`](https://ggobi.github.io/ggally/reference/ggparcoord.html) of [**GGally**](https://ggobi.github.io/ggally/) package
+
+```{r, fig.height=10, fig.width=20}
+#| code-fold: true
+#| code-summary: "REDCAP - Parallel plot"
+p <- ggparcoord(data = redcapCluster,
+           columns = c(7,8,16,17,18,20:23),
+           scale = "std",
+           alphaLines = 0.2,
+           boxplot = TRUE,
+           groupColumn = "Redcap_Cluster",
+           title = "Multiple Parallel Coordinates Plots of REDCAP Cluster") +
+  theme_minimal()+
+  scale_color_manual(values=c( "#69b3a2", "red", "blue", "green") )+
+  facet_grid(~ `Redcap_Cluster`) +
+  theme(axis.text.x = element_text(angle = 30,size = 5))+
+  xlab("")
+
+ggplotly(p)
+  
+
+```
+
+**Interpretation**:
+
+It is alarming that in cluster 2 no. of non-functional points is greater than no. of functional points. Also most of the waterpoints here are in urban regions. The cruciality of waterpoints is the same for all the clusters whereas the waterpoints with higher score of staleness (the fact of not being fresh and tasting or smelling unpleasant) are more in cluster 1 and cluster 2 which are to be taken care of.
+
+### 6. Results & Insights
+
+First, let us plot all the maps together using tmap_arrange() function of tmap package
+
+```{r,fig.height=15, fig.width=20, warning=FALSE, message=FALSE}
+tmap_arrange(cmap3, cmap2,cmap4, cmap5,
+             nrow = 2,
+             ncol = 2)
+```
+
+To compare the distributions visually and to check for outliers, let us create statistical plot using ggbetweenstats() of ggstatsplot package.The output is a combination of box and violin plots along with jittered data points for between-subjects designs with statistical details.
+
+```{r, fig.height=10, fig.width=15, message=FALSE, warning=FALSE}
+#| code-fold: true
+#| code-summary: "Statistical plot"
+
+ggp1 <- ggbetweenstats(
+  data = spConstrainedCluster,
+  x = spconstrained_cluster, 
+  y = pct_functional,
+  type = "p",
+  mean.ci = TRUE, 
+  pairwise.comparisons = TRUE, 
+  pairwise.display = "s",
+  p.adjust.method = "fdr",
+  messages = FALSE,
+   title = "Is proportion of functional waterpoints \nsignificantly different from each cluster?",
+  package = "ggsci",
+  palette = "uniform_startrek",
+  outlier.tagging = TRUE,                                    
+  outlier.coef = 1.5,                                       
+  outlier.label = shapeName,                                  
+  outlier.label.color = "red",                               
+  mean.plotting = TRUE,                                      
+  mean.color = "darkblue"
+)
+
+ggp2 <- ggbetweenstats(
+  data = spConstrainedCluster,
+  x = spconstrained_cluster, 
+  y = pct_nonfunctional,
+  type = "p",
+  mean.ci = TRUE, 
+  pairwise.comparisons = TRUE, 
+  pairwise.display = "s",
+  p.adjust.method = "fdr",
+  messages = FALSE,
+  title = "Is proportion of non-functional waterpoints \nsignificantly different from each cluster?",
+  package = "ggsci",
+  palette = "uniform_startrek",
+  outlier.tagging = TRUE,                                    
+  outlier.coef = 1.5,                                       
+  outlier.label = shapeName,                                  
+  outlier.label.color = "red",                               
+  mean.plotting = TRUE,                                      
+  mean.color = "darkblue"
+)
+
+## combining the individual plots into a single plot
+combine_plots(
+  list(ggp1, ggp2))
+```
+
+Given that the p-value of both variables are smaller than 0.05, we reject the null hypothesis, so we reject the hypothesis that all means are equal. Therefore, we can conclude that at least one division is different than the others in terms of percentage of functional and non functional waterpoints. Also from the above plot, it is clear that mean values of percentage of functional and non-functional waterpoints significantly differ from each cluster. Divisions such as Jaba, Dukku, Apa, Sardauna, Gwer West are the outliers in case of percentage of non-functional waterpoints.
+
+Let us tabulate the summary of mean values of each variable across all 4 clusters
+
+```{r, echo=FALSE}
+#| code-fold: true
+#| code-summary: "Mean Values"
+
+spConstrainedCluster <- spConstrainedCluster %>% replace(is.na(.), 0)
+
+report <- spConstrainedCluster %>%
+  group_by(spconstrained_cluster) %>%
+  st_set_geometry(NULL) %>%
+  summarise(mean_pctfun = mean(pct_functional),
+            mean_pctnonfun = mean(pct_nonfunctional),
+            mean_pcthandpump = mean(pct_handpump),
+            mean_pctcapmore1000 = mean(pct_capmore1000),
+            mean_pctrural = mean(pct_rural),
+            mean_pctcrucial = mean(pct_crucial),
+            mean_stale = mean(pct_stale))
+
+
+summary_report <- t(report)
+
+
+```
+
+| Variables        | Cluster 1    | Cluster 2    | Cluster 3    | Cluster 4    |
+|------------------|--------------|--------------|--------------|--------------|
+| pct_functional   | 0.2870001    | 0.2852438    | 0.4452821    | 0.7986343    |
+| pct_nonunctional | 0.3864671    | 0.1536119    | 0.3648344    | 0.2010879    |
+| pct_handpump     | 0.2460482    | 0.3347766    | 0.5819492    | 0.8846085    |
+| pct_capmore1000  | 0.4215695    | 0.1080063    | 0.2273853    | 0.1134975    |
+| pct_rural        | 0.6195961    | 0.4005031    | 0.8502495    | 0.8215736    |
+| pct_crucial      | 0.3570221    | 0.2167122    | 0.4115137    | 0.1512593    |
+| pct_stale        | 0.0696419383 | 0.0213358622 | 0.1426163540 | 0.0002777778 |
+
+: Table 4: Mean values of variables across clusters
+
+**High Risk Divisions (Cluster 1):**
+
+The first cluster consists of divisions such as Asa, Bomadi, Ede South, Isu, Kolokuma, Burutu which are all predominantly located at the parts of western and south western Nigeria. The proportion of non-functional waterpoints, usage capacity for people more than 1000, are significantly higher than in any other group of divisions and the handpump proportion, functional waterpoints proportion are significantly lower (results are based on Pairwise Games Howell's test, One-Way Anova: Post Hoc Multiple Comparison of Clusters). According to those characteristics we name them high risk divisions.
+
+**Medium Risk Divisions (Cluster 2 and 3):**
+
+The second and third clusters mainly consist of the divisions from the northern and north eastern part of Nigeria namely Kabba, Lokoja, Mikang, Yunusari, Mopa-Muro; some of them are also in the central and south eastern part of Nigeria. In most cases the mean values of variables for those divisions are between the mean values of first and fourth group of divisions. This "second place" is statistically significant for non-functional water points, staleness of waterpoints and the proportion of crucialness. We name them medium risk divisions , since there is one group of division which is less riskier than this group.
+
+**Low Risk Divisions (Cluster 4):**
+
+Fourth group of divisions are concentrated around Hong, Jada, bali, Fufore, Gashaka, Gombi. So they mainly rural waterpoints in the eastern part of Slovenia which are located at the eastern part of Nigeria. Proportion of non-functional waterpoints, staleness level are lower than in the first and second group and the percentage of functional waterpoints is highest of all groups. Hence, we name them as low risk divisions.
+
+### 7.Conclusion
+
+In this study, we aimed to explore the results provided by different clustering algorithms in the analysis of delineating homogeneous region of Nigeria by using geographically referenced multivariate waterpoint attributes data. We addressed here both spatial and non-spatial algorithms, allowing us to evaluate and discuss the properties and practical implications inherent to such methods. Incorporating the spatial structure into the analysis led us to more regionalized clusters, with higher spatial cohesion. Identifying high/low-risk spatial cluster of divisions is vital for the remedial steps in future. Ward-like hierarchical clustering algorithm, including spatial constraints using Clustgeo, SKATER, REDCAP algorithms were applied.
+
+### 8. References
+
+**Editing Quarto Document & Data Wrangling**
+
+[Formatting Tables](https://quarto.org/docs/authoring/tables.html)
+
+[HTML Formatting code blocks](https://quarto.org/docs/output-formats/html-code.html#hiding-code)
+
+[Exploratory Spatial Data Analysis](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2017WR021730)
+
+Reproducibility - Megan Sim Tze Yen, [Undergraduate Take home exercise](https://is415-msty.netlify.app/posts/2021-09-10-take-home-exercise-1/)
+
+Duplicate records - Ong Zhi Rong Jordan, [Classmate Take home exercise](https://jordan-isss624-geospatial.netlify.app/posts/geo/geospatial_exercise/#visualising-of-distribution-using-ggplot)
+
+**Spatially and non-spatially constrained mapping algorithms**
+
+[Hierarchical Cluster Analysis](http://uc-r.github.io/hc_clustering)
+
+[Spatially constrained clustering using SKATER](https://www.rdocumentation.org/packages/spdep/versions/0.8-1/topics/skater)
+
+[ClustGeo: Hierarchical Clustering with Spatial Constraints](https://cran.r-project.org/web/packages/ClustGeo/)
+
+[rgeoda: Spatially constrained REDCAP clustering](https://geodacenter.github.io/rgeoda/articles/rgeoda_tutorial.html#max-p-greedy)
+
+**Interpretation and Analysis**
+
+Rovan, J. and Sambt, J. (2003) ["Socio-economic Differences Among Slovenian Municipalities: A Cluster Analysis Approach"](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.126.4636&rep=rep1&type=pdf), Developments in Applied Statistics, pp. 265-278.
+
+de Souza, D. C. & Taconeli, C. A. (2022) "Spatial and non-spatial clustering algorithm in the analysis of Brazilian educational data", *Communications in Statistics: Case Studies, Data Analysis, and Applications*. Vol. 8, No. 4, 588-606

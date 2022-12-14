@@ -144,7 +144,7 @@ The Spatial C(K)luster Analysis by Tree Edge Removal(SKATER) algorithm introduce
 
 The code chunk below computes SKATER clusters using skater() function of `rgeoda` package
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 SKATER_clusters <- rgeoda::skater(k = 4, 
                           w = queen_w, 
                           df = nga_derived )
@@ -218,7 +218,7 @@ ggplotly(p)
 
 Proportion of functional waterpoints is greater than non functional waterpoints in both clusters 1 and 2 which is very good sign and also the percentage of waterpoints with high staleness is lesser in numbers in cluster 2 which is again positive. But the same staleness percentage is quite high in cluster 1 which is a matter of concern.
 
-### 3. AZP 
+### 3. AZP
 
 The automatic zoning procedure (AZP) was initially outlined in Openshaw (1977) as a way to address some of the consequences of the modifiable areal unit problem (MAUP). In essence, it consists of a heuristic to find the best set of combinations of contiguous spatial units into p regions, minimizing the within-sum of squares as a criterion of homogeneity. The number of regions needs to be specified beforehand, as in most other clustering methods considered so far.
 
@@ -253,7 +253,7 @@ azp_tabuclusters <- azp_tabu(p = 4,
                          conv_tabu = 10)
 ```
 
-#### c) AZP Simulated Annealing 
+#### c) AZP Simulated Annealing
 
 To apply `simulated annealing` algorithm in maxp function with the parameter of cooling rate:
 
