@@ -1155,7 +1155,9 @@ As our clustering variables include absolute numbers and percentage values, it i
 
 There are 3 major standardisation techniques
 
-![Standardisation techniques](images/std.PNG) Here, we are performing Z-score standardisation as it can handle outliers well and it is applicable to variables which are from normal distribution
+![Standardisation techniques](images/std.PNG)
+
+Here, we are performing Z-score standardisation as it can handle outliers well and it is applicable to variables which are from normal distribution
 
 ```{r}
 #| code-fold: true
@@ -1678,6 +1680,8 @@ redcapCluster <- cbind(nga_wp_clusf, as.factor(redcap_cluster)) %>%
 Let us map the clusters and view its spatial distribution using tmap options
 
 ```{r, fig.height=10, fig.width=20, message=FALSE, warning=FALSE}
+#| code-fold: true
+#| code-summary: "Mapping REDCAP clusters"
 
 cmap5 <- tm_shape (redcapCluster) +
           tm_polygons("Redcap_Cluster",
@@ -1841,7 +1845,7 @@ The second and third clusters mainly consist of the divisions from the northern 
 
 Fourth group of divisions are concentrated around Hong, Jada, bali, Fufore, Gashaka, Gombi. So they mainly rural waterpoints in the eastern part of Slovenia which are located at the eastern part of Nigeria. Proportion of non-functional waterpoints, staleness level are lower than in the first and second group and the percentage of functional waterpoints is highest of all groups. Hence, we name them as low risk divisions.
 
-### 7.Conclusion
+### 7. Conclusion
 
 In this study, we aimed to explore the results provided by different clustering algorithms in the analysis of delineating homogeneous region of Nigeria by using geographically referenced multivariate waterpoint attributes data. We addressed here both spatial and non-spatial algorithms, allowing us to evaluate and discuss the properties and practical implications inherent to such methods. Incorporating the spatial structure into the analysis led us to more regionalized clusters, with higher spatial cohesion. Identifying high/low-risk spatial cluster of divisions is vital for the remedial steps in future. Ward-like hierarchical clustering algorithm, including spatial constraints using Clustgeo, SKATER, REDCAP algorithms were applied.
 
