@@ -75,7 +75,6 @@ pacman::p_load(olsrr, corrplot, ggpubr,
 
 The code chunk below is used to import *MP_SUBZONE_WEB_PL* shapefile by using `st_read()` of **sf** packages and uses `read_csv()` function of readr package to import condo_resale_2015 into R as a tibble data frame called condo_resale.
 
-
 ```{r, message=FALSE}
 #| code-fold: true
 #| code-summary: "Importing data"
@@ -106,6 +105,7 @@ condo_resale.sf <- st_as_sf(condo_resale,
                             crs=4326) %>%
   st_transform(crs=3414)
 ```
+
 #### 4.3 Exploratory Data Analysis (EDA)
 
 **What is the distribution of Condo selling price?**
@@ -642,11 +642,7 @@ gwr.adaptive <- gwr.basic(formula = SELLING_PRICE ~ AREA_SQM + AGE +
 gwr.adaptive
 ```
 
-It reveals that the adjusted r-square of the GWR is 0.8561 which is significantly better than the global multiple linear regression model of 0.6472.
-Also, AICc value of the adaptive distance gwr is 41982.22 which is even smaller than the AICc of the fixed distance gwr of 42263.61.
-Lesser the AICC, better the model and hence adaptive model is chosen in the subsequent analysis,
-
-
+It reveals that the adjusted r-square of the GWR is 0.8561 which is significantly better than the global multiple linear regression model of 0.6472. Also, AICc value of the adaptive distance gwr is 41982.22 which is even smaller than the AICc of the fixed distance gwr of 42263.61. Lesser the AICC, better the model and hence adaptive model is chosen in the subsequent analysis,
 
 #### 4.5.4 Visualising GWR Output
 
@@ -691,11 +687,9 @@ We can see that the places which have darker points indicate that the local regr
 
 Coefficient Standard Error: these values measure the reliability of each coefficient estimate. Confidence in those estimates are higher when standard errors are small in relation to the actual coefficient values. Large standard errors may indicate problems with local collinearity.
 
-They are all stored in a SpatialPointsDataFrame or SpatialPolygonsDataFrame object integrated with fit.points, GWR coefficient estimates, y value, predicted values, coefficient standard errors and t-values in its “data” slot in an object called SDF of the output list.
+They are all stored in a SpatialPointsDataFrame or SpatialPolygonsDataFrame object integrated with fit.points, GWR coefficient estimates, y value, predicted values, coefficient standard errors and t-values in its "data" slot in an object called SDF of the output list.
 
 Now let's create an interactive static point symbol map to view standard error and t-values of area_sqm adjacent to each other using the code chunk below
-
-
 
 ```{r}
 tmap_mode("view")
@@ -721,9 +715,6 @@ tmap_arrange(AREA_SQM_SE, AREA_SQM_TV,
 ```
 
 argument sync in tmap_arrange() helps us to view the 2 maps next to each other and when one map is zoomed in or zoomed out, the other one is also affected.
-
-
-
 
 #### 4.5.7 Visualizing URA Planning Region
 

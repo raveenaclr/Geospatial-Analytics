@@ -1,0 +1,317 @@
+---
+title: "Modeling the spatial variation of explanatory factors of waterpoint status using Geographically Weighted Logistic Regression  "
+---
+
+### 1. Introduction
+
+The objective of this exercise is to model the spatial variation of explanatory factors of waterpoint status using Geographically Weighted Logistic Regression in Osun state, Nigeria.
+
+**What is Geographically Weighted Regression?**
+
+It is a spatial statistical technique that takes non-stationary variables into consideration (e.g., climate; demographic factors; physical environment characteristics) and models the local relationships between these independent variables and an outcome of interest (also known as dependent variable).
+
+### 2. Data
+
+Following two data sets are used:
+
+-   Osun subzone boundary shapefile in rds format
+
+-   Osun waterpoint details in rds format
+
+### 3.Deep Dive into Map Analysis
+
+#### 3.1 Installing libraries and Importing files
+
+**Loading packages**
+
+Let us first load required packages into R environment. [`p_load`](https://cran.r-project.org/web/packages/pacman/pacman.pdf) function pf [**pacman**](https://github.com/trinker/pacman) package is used to install the packages
+
+```{r}
+
+pacman::p_load(sf, tidyverse, tmap, corrplot, 
+               ggpubr,spdep,rgdal, funModeling,
+               blorr,plotly,GWmodel, skimr, caret)
+```
+
+The code chunk below is used to import osun.rds and osun_wp_sf.rds using read_rds() function
+
+```{r}
+osun <- read_rds("data5/rds/Osun.rds")
+osun_wp_sf <-  read_rds("data5/rds/Osun_wp_sf.rds")
+```
+
+#### 3.2 Data Wrangling
+
+Dependent variable - Water point status
+
+Independent variable -
+
+distance_to_primary_road
+
+distance_to_secondary_road
+
+distance_to_tertiary_road
+
+distance_to_city
+
+distance_to_town
+
+water_point_population
+
+local_population_1km
+
+usage_capacity
+
+is_urban
+
+water_source_clean
+
+#### 3.3 Exploratory Data Analysis (EDA)
+
+**What is the percentage of people using functional and non functioal water points?**
+
+```{r}
+osun_wp_sf<-osun_wp_sf %>%
+  mutate(`status_id`=
+                case_when(`status_id`=="Yes"~"Functional",
+                          `status_id`=="No"~"Non-Functional",
+                          `status_id`== "Unknown"~"unknown"))
+freq(data = osun_wp_sf, input = 'status_id')
+```
+
+**What is the overall statistical summary of Osun waterpoints?**
+
+```{r}
+osun_wp_sf %>%
+  skim()
+```
+
+Let us now select the desired variables by using filter() function and save it in new dataframe called osun_wp_sf_clean
+
+```{r}
+osun_wp_sf_clean <- osun_wp_sf %>%
+  filter_at(vars(status,
+                 distance_to_primary_road,
+                 distance_to_secondary_road,  
+                 distance_to_tertiary_road,
+                 distance_to_city,
+                 distance_to_town,
+                 water_point_population,
+                 local_population_1km,
+                 usage_capacity,is_urban,
+                 water_source_clean),
+            all_vars(!is.na(.))) %>%
+  mutate(usage_capacity = as.factor(usage_capacity))
+  
+```
+
+#### 3.4 Correlation Analysis
+
+Before building the model, let us determine if there are highly correlated variables. First, let us drop the geometry column to proceed to correlation nad select only the desired columns
+
+```{r}
+osun_wp <- osun_wp_sf_clean %>%
+  select(c(7,35:39, 42:43, 46:47, 57)) %>%
+  st_set_geometry(NULL)
+```
+
+```{r, fig.width=11}
+cluster_vars.cor = cor(osun_wp[,2:7])
+  corrplot.mixed(cluster_vars.cor,
+                 lower = "ellipse",
+                 upper = "number",
+                 tl.pos = "lt",
+                 diag = "l",
+                 tl.col = "black")
+```
+
+As we can see that correlation coefficent are not greater than 0.8 and hence no variables are highly correlated.Therefore, all variables can be included in building a model.
+
+#### 3.5 Fitting Generalised Linear Models
+
+glm is used to fit generalized linear models, specified by giving a symbolic description of the linear predictor and a description of the error distribution. Instead of using typical R report, Binary logistic regression report is shown using blr_regress() function
+
+```{r}
+model <- glm(status ~ distance_to_primary_road +
+               distance_to_secondary_road+
+               distance_to_tertiary_road+
+               distance_to_city+
+               distance_to_town+
+               is_urban+
+               usage_capacity+
+               water_source_clean+
+               water_point_population+
+               local_population_1km,
+             data = osun_wp_sf_clean,
+             family = binomial(link='logit'))
+  
+  
+blr_regress(model)
+```
+
+From the above report we can see that the at 95% confidence, the variables distance_to_primary_road and distance_to_secondary_road are insignificant. Hence, let us exclude those variables whose p values are higher than 0.05 and recalibrate the model.
+
+#### 3.6 Recalibirating the model
+
+```{r}
+remodel <- glm(status ~ distance_to_tertiary_road+
+               distance_to_city+
+               distance_to_town+
+               is_urban+
+               usage_capacity+
+               water_source_clean+
+               water_point_population+
+               local_population_1km,
+             data = osun_wp_sf_clean,
+             family = binomial(link='logit'))
+  
+  
+blr_regress(remodel)
+```
+
+Now let us view the confusion matrix with the following evaluation metrics
+
+In binomial logistic regression, the classification table is a 2 x 2 table that contains the observed and predicted model results (shown in the figure below). It is popularly known as contingency table. The table is often called an "error table" or a "**confusion matrix**".
+
+![Confusion matrix](images/contigency%20matrix.PNG){fig-align="left"}
+
+The contingency table has 4 data cells:
+
+1\. Actual 0 Predicted 0 -- The number of cases that were both predicted and observed as 0. The records in this cell are referred to as true negatives. The model classification was correct for these records.
+
+2\. Actual 0 Predicted 1 -- The number of cases that were predicted as 1 yet observed as 0. The records in this cell are referred to as false positives. The model classification was incorrect for these records.
+
+3\. Actual 1 Predicted 1 -- The number of cases that were both predicted and observed as 1. The records in this cell are referred to as true positives. The model classification was correct for these records.
+
+4\. Actual 1 Predicted 0 -- The number of cases that were predicted as 0 yet observed as 1. The records in this cell are referred to as false negatives. The model classification was incorrect for these records.
+
+![](images/analysis.PNG)
+
+```{r}
+blr_confusion_matrix(model, cutoff = 0.5)
+```
+
+```{r}
+blr_confusion_matrix(remodel, cutoff = 0.5)
+```
+
+We can compare the results of both confusion matrices before and after excluding the insignifcant variables. There is not much difference in the results though. It is because in general, when an independent variable is removed from a regression model, the overall explanatory or performance of the model will be compromised.  This is the nature of regression models.  However, when an insignificant independent variable was removed from the model,the performance of the model will be lesser than when a significant independent was removed from the model. Hence, we have witnessed the same here in this case as the accuracy is 67.26 % later while recalibrating the model when compared to 67.39% previously.
+
+#### 3.7 Converting into spatial dataframe
+
+Let us convert the simple feature dataframe into spatial dataframe using as_spatial() function. The below code chunk performs the conversion
+
+```{r}
+osun_wp_sp <- osun_wp_sf_clean %>%
+  select(c(status,
+               distance_to_tertiary_road,
+               distance_to_city,
+               distance_to_town,
+               is_urban,
+               usage_capacity,
+               water_source_clean,
+               water_point_population,
+               local_population_1km
+           ))%>%
+  as_Spatial()
+osun_wp_sp
+```
+
+#### 3.8 Bandwidth selection for Generalised Geographically Weighted Regression (GGWR)
+
+The code chunk below is used to calibrate a generalised GWR model using bw.ggwr() function
+
+```{r, warning=FALSE}
+bw.fixed <- bw.ggwr(status ~distance_to_tertiary_road+
+               distance_to_city+
+               distance_to_town+
+               is_urban+
+               usage_capacity+
+               water_source_clean+
+               water_point_population+
+               local_population_1km,
+               data = osun_wp_sp,
+               family = "binomial",
+               approach = "AIC",
+               kernel = "gaussian",
+               adaptive = FALSE,
+               longlat = FALSE)
+```
+
+The below code chunk helps us to create generalised models with Binomial option using ggwr.basic() function
+
+```{r, warning=FALSE, message=FALSE}
+
+gwlr.fixed <- ggwr.basic(status ~distance_to_tertiary_road+
+               distance_to_city+
+               distance_to_town+
+               is_urban+
+               usage_capacity+
+               water_source_clean+
+               water_point_population+
+               local_population_1km,
+               data = osun_wp_sp,
+               bw=bw.fixed,
+               family="binomial",
+               kernel="gaussian",
+               adaptive=FALSE,
+               longlat = FALSE)
+```
+
+#### 3.9 Converting SDF into sf data.frame
+
+To assess the performance of the gwLR, first let us convert the sdf object in as data frame by using the code chunk below
+
+```{r}
+gwr.fixed <- as.data.frame(gwlr.fixed$SDF)
+```
+
+Next, let us label yhat values greater than or equal to 0.5 into 1 and else 0. The result of the logic comparison operation will be saved into a field called *most*
+
+```{r}
+gwr.fixed <- gwr.fixed %>%
+  mutate(most = ifelse(gwr.fixed$yhat >=0.5,T,F))
+```
+
+```{r}
+gwr.fixed$y <- as.factor(gwr.fixed$y)
+gwr.fixed$most <- as.factor(gwr.fixed$most)
+CM <- confusionMatrix(data = gwr.fixed$most,
+                      reference= gwr.fixed$y,
+                      positive = "TRUE" )
+CM
+```
+
+Thus, for the comparision, we have used argument positive = "TRUE" and accuracy here is 88% and the sensitivity and specificity values are 89% and 86% respectively which means the model is able to identify 89% of right cases correctly and 86% percent of false cases correctly.
+
+```{r}
+osun_wp_sf_selected <- osun_wp_sf_clean %>%
+  select(c(ADM2_EN, ADM2_PCODE,
+           ADM1_EN, ADM1_PCODE,
+           status))
+```
+
+Now let us append *gwr.fixed* matrix onto osun_wp_sf_selected to produce an output simple feature object called *gwr_sf.fixed* using *cbind()* function
+
+```{r}
+gwr_sf.fixed <- cbind(osun_wp_sf_selected, gwr.fixed)
+```
+
+The estimated or predicted values in a regression or other predictive model are termed the y-hat values. "Y" because y is the outcome or dependent variable in the model equation, and a "hat" symbol (circumflex) placed over the variable name is the statistical designation of an estimated value.
+
+Finally, let us view these yhat values geographically mapped onto Osun division. The lighter the colour lower the yhat value and the darker colour indicates high yhat values i.e predicted values.
+```{r}
+tmap_mode("view")
+prob_T <- tm_shape(osun)+
+  tm_polygons(alpha=0.1)+
+  tm_shape(gwr_sf.fixed)+
+  tm_dots(col="yhat",
+          border.col = "gray60",
+          border.lwd = 1)+
+  tm_view(set.zoom.limits = c(9,14))
+prob_T
+```
+
+### 4. Conclusion
+
+In this study, we have modeled the spatial variation of explanatory factors of waterpoint status using Geographically Weighted Logistic Regression in Osun state, Nigeria by executing various geographically weighted regression models. The confusion matrix and evaluation metrics helped us in undertanding the performance of the model better. Finally, we have mapped the fixed gwr sf values by varying the colours with respect to yhat values.
