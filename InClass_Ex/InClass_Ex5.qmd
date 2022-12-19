@@ -68,15 +68,11 @@ water_source_clean
 
 #### 3.3 Exploratory Data Analysis (EDA)
 
-**What is the percentage of people using functional and non functioal water points?**
+**What is the distribution of independent variable?**
 
 ```{r}
-osun_wp_sf<-osun_wp_sf %>%
-  mutate(`status_id`=
-                case_when(`status_id`=="Yes"~"Functional",
-                          `status_id`=="No"~"Non-Functional",
-                          `status_id`== "Unknown"~"unknown"))
-freq(data = osun_wp_sf, input = 'status_id')
+osun_wp_sf %>%
+  freq(input = "status")
 ```
 
 **What is the overall statistical summary of Osun waterpoints?**
@@ -311,6 +307,8 @@ prob_T <- tm_shape(osun)+
   tm_view(set.zoom.limits = c(9,14))
 prob_T
 ```
+
+
 
 ### 4. Conclusion
 

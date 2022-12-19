@@ -41,7 +41,7 @@ Some of the important steps performed in this study are as follows
 For this study, data from [WPdx Global Data Repositories](https://www.waterpointdata.org/access-data/) and [geoBoundaries](https://www.geoboundaries.org/) are used which are in csv and shape file formats respectively. These datasets provide information about waterpoints and Nigeria's Administrative boundary shape file.
 
 | Data Type  | Description                                                                                                                   | Format     | Source                                                                |
-|----------------|-------------------------|----------------|----------------|
+|------------|-------------------------------------------------------------------------------------------------------------------------------|------------|-----------------------------------------------------------------------|
 | Geospatial | Nigeria Level-2 Administrative Boundary                                                                                       | Shape file | [Geoboundaries](https://www.geoboundaries.org/)                       |
 | Aspatial   | Water point related data on [WPdx standard](https://www.waterpointdata.org/wp-content/uploads/2021/04/WPDx_Data_Standard.pdf) | csv        | [Waterpoint access data](https://www.waterpointdata.org/access-data/) |
 
@@ -197,7 +197,7 @@ wp_sf <- st_join(wp_nga_sf, nga_sf)
 Based on the [WPdx standard](https://www.opendatanetwork.com/dataset/data.waterpointdata.org/eqje-vguj), following measures are chosen,
 
 | Measure                                    | col_id            | Description                                                                                                                              |
-|-----------------|-----------------|--------------------------------------|
+|--------------------------------------------|-------------------|------------------------------------------------------------------------------------------------------------------------------------------|
 | Total number of functional water points    | #status_clean     | No. of functional waterpoints are derived from this categorised column                                                                   |
 | Total number of nonfunctional water points | #status_clean     | No. of non- functional waterpoints are derived from this categorised column                                                              |
 | Percentage of functional water points      | #status_clean     | Percentage of functional waterpoints are derived from the already derived columns                                                        |
@@ -1351,7 +1351,7 @@ ggplotly(p)
 From the above plot, we can infer that the divisions in cluster 1 are majorly urban waterpoints and the staleness of water is very high which is a serious concern. On the other hand, divisions in cluster 4 has higher proportion of functional waterpoints than non-functional waterpoints.
 
 | Cluster                 | Divisions                                                  | Reason                                                                      |
-|------------------|------------------------|------------------------------|
+|-------------------------|------------------------------------------------------------|-----------------------------------------------------------------------------|
 | Low Risk - Cluster 4    | Bali, Fufore, Ganye, Gashaka, Gombi, Hong                  | Higher proportion of functional waterpoints than non-functional waterpoints |
 | Medium Risk - Cluster 2 | Shomgom,Demsa,Shelleng,Billiri, Kwami, Yola South, Lamurde | Recommended max. users per waterpoint is high                               |
 | High Risk - Cluster 1   | Bursari, Idah, Jos North, Etsako East, Ijebu East          | High water staleness                                                        |
